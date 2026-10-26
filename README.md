@@ -18,10 +18,10 @@ Codex 負責理解需求、準備提示詞與檢視結果；本機 Python 負責
 
 ## 複製這句話給 Codex
 
-把下面的 GitHub 網址換成本頁網址，整段貼給 Codex：
+將下面整段貼給 Codex：
 
 ```text
-請幫我安裝這個 Codex Skill：〈貼上本頁的 GitHub 網址〉。請依儲存庫的安裝指引完成安裝與環境檢查，缺少必要資訊時再詢問我。
+請幫我安裝這個 Codex Skill：https://github.com/yuwechang/comfyui-video2sprite 。請依儲存庫的安裝指引完成安裝與環境檢查，缺少必要資訊時再詢問我。
 ```
 
 Codex 會依 [安裝與更新指引](references/install.md) 下載安裝、檢查 Python 套件與 FFmpeg／ffprobe。缺少外部程式時，會詢問是否協助安裝。你不需要手動複製資料夾、設定安裝路徑或操作 Python。
@@ -89,7 +89,7 @@ Skill 不隨附模型、節點、FFmpeg 或 ffprobe。環境與套件檢查交�
 更新時也可以直接告訴 Codex：
 
 ```text
-請依這個儲存庫的安裝與更新指引，更新 comfyui-video2sprite，保留我的工作流設定、素材與成品：〈貼上本頁的 GitHub 網址〉。
+請依這個儲存庫的安裝與更新指引，更新 comfyui-video2sprite，保留我的工作流設定、素材與成品：https://github.com/yuwechang/comfyui-video2sprite
 ```
 
 安裝與更新位置依 [OpenAI 官方技能文件](https://learn.chatgpt.com/docs/build-skills) 處理。
