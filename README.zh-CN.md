@@ -14,7 +14,9 @@ Codex 负责理解需求、准备提示词与检查结果；本机 Python 负责
   </tr>
 </table>
 
-**[查看完整制作过程与下载示例素材 →](examples/right-profile-walk/README.zh-CN.md)**
+- [连续循环：行走](examples/right-profile-walk/README.zh-CN.md)
+- [非连续循环：攻击](examples/right-profile-attack/README.zh-CN.md)
+- [不可循环：死亡](examples/right-profile-death/README.zh-CN.md)
 
 从自然站立参考、固定动作画布、灰底视频到透明精灵图集，逐阶段展示实际成果与素材复用方式。
 

@@ -14,7 +14,9 @@ Codex는 요청 해석, 프롬프트 작성, 결과 검토를 담당합니다. �
   </tr>
 </table>
 
-**[전체 제작 과정과 예제 자료 다운로드 →](examples/right-profile-walk/README.ko.md)**
+- [연속 루프: 걷기](examples/right-profile-walk/README.ko.md)
+- [일시 정지가 있는 루프: 공격](examples/right-profile-attack/README.ko.md)
+- [비반복 동작: 쓰러지기](examples/right-profile-death/README.ko.md)
 
 자연스러운 서 있는 자세, 동작 여백을 둔 캔버스, 회색 배경 동영상, 투명 시트까지 실제 결과와 자료 재사용 방법을 단계별로 소개합니다.
 

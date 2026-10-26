@@ -1,0 +1,7 @@
+Subject & Style: 2D anime animation of the same female martial artist in the supplied natural standing reference, strict right-facing side profile, full body. Maintain her identity, outfit, body proportions and clean line art.
+
+Environment: Maintain the existing plain gray scene unchanged throughout.
+
+Camera: Static full-body side view at the same distance and angle. The character stays at the same horizontal location, with a consistent ground level.
+
+Action Sequence: From natural standing, first establish a right-facing martial-arts fighting guard, feet apart, knees slightly bent and both fists raised. Then perform one complete straight punch toward screen right: shift weight and rotate the torso, extend the punching arm fully, retract the fist and recover the same fighting guard. Keep the action clear and controlled with a measured pace. Hold the recovered guard at the end.

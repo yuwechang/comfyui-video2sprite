@@ -1,0 +1,241 @@
+{
+  "frames": 12,
+  "cell_width": 303,
+  "cell_height": 249,
+  "columns": 6,
+  "rows": 2,
+  "order": "left-to-right, top-to-bottom",
+  "sample_indices": [
+    86,
+    91,
+    95,
+    100,
+    104,
+    109,
+    113,
+    118,
+    122,
+    127,
+    131,
+    136
+  ],
+  "duration_ms": 1200,
+  "requested_seconds": 1.2,
+  "loop": false,
+  "input_sheet": "../images/spritesheet-before-removal.png",
+  "original_frame_size": [
+    1152,
+    896
+  ],
+  "frame_scale": 0.453900709219858,
+  "motion_type": "once",
+  "automatic_selection": {
+    "status": "selected",
+    "motion_type": "once",
+    "start": 86,
+    "end": 136,
+    "matching_tail": 136,
+    "loop": false,
+    "seam_distance": 1.42266,
+    "analysis_stride": 2,
+    "stable_threshold": 0.06181120535456697,
+    "stable_runs": [
+      [
+        0,
+        10
+      ],
+      [
+        32,
+        42
+      ],
+      [
+        46,
+        78
+      ],
+      [
+        80,
+        82
+      ],
+      [
+        84,
+        86
+      ],
+      [
+        136,
+        156
+      ]
+    ]
+  },
+  "source_size": [
+    523,
+    407
+  ],
+  "source_content_boxes": [
+    [
+      193,
+      157,
+      306,
+      396
+    ],
+    [
+      193,
+      160,
+      304,
+      396
+    ],
+    [
+      191,
+      165,
+      302,
+      396
+    ],
+    [
+      178,
+      179,
+      306,
+      388
+    ],
+    [
+      164,
+      216,
+      313,
+      392
+    ],
+    [
+      175,
+      211,
+      305,
+      391
+    ],
+    [
+      184,
+      211,
+      299,
+      391
+    ],
+    [
+      188,
+      227,
+      302,
+      392
+    ],
+    [
+      185,
+      268,
+      317,
+      401
+    ],
+    [
+      153,
+      295,
+      320,
+      399
+    ],
+    [
+      122,
+      328,
+      319,
+      405
+    ],
+    [
+      110,
+      333,
+      318,
+      404
+    ]
+  ],
+  "crop_box": [
+    110,
+    157,
+    413,
+    405
+  ],
+  "centre_x": 261.5,
+  "background_rgb": [
+    123,
+    123,
+    123
+  ],
+  "frame_backgrounds": [
+    [
+      123,
+      123,
+      123
+    ],
+    [
+      123,
+      123,
+      123
+    ],
+    [
+      123,
+      123,
+      123
+    ],
+    [
+      123,
+      123,
+      123
+    ],
+    [
+      123,
+      123,
+      123
+    ],
+    [
+      123,
+      123,
+      123
+    ],
+    [
+      123,
+      123,
+      123
+    ],
+    [
+      123,
+      123,
+      123
+    ],
+    [
+      123,
+      123,
+      123
+    ],
+    [
+      124,
+      124,
+      124
+    ],
+    [
+      124,
+      124,
+      124
+    ],
+    [
+      123,
+      123,
+      123
+    ]
+  ],
+  "background_tolerance": 32,
+  "bottom_padding": 1,
+  "scale": 1,
+  "target_max_side": null,
+  "scaled_content_size": [
+    303,
+    248
+  ],
+  "image_input_padding": [
+    6,
+    14
+  ],
+  "sheet": "spritesheet.png",
+  "preview": "preview.gif",
+  "verified": {
+    "dimensions": true,
+    "cell_alpha": true,
+    "gif_transparency": true,
+    "gif_duration_ms": 1200
+  }
+}

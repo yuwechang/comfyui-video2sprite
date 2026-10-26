@@ -1,0 +1,1 @@
+Remove the background, and output a PNG image. Preserve every character pose, costume detail and accessory in this animation sprite sheet. Keep the exact canvas size, grid layout, figure positions and character scale unchanged. Output genuine transparency in the background and between all figures.

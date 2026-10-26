@@ -124,3 +124,5 @@
 | 最終透明影格表 | 匯入遊戲引擎或製作其他預覽 |
 
 [開始安裝與使用 →](../../README.md#複製這句話給-codex)
+
+[連續循環：走路](../right-profile-walk/README.md) · [非連續循環：攻擊](../right-profile-attack/README.md) · [不可循環：死亡](../right-profile-death/README.md)

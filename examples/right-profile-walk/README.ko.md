@@ -121,3 +121,5 @@
 | 최종 투명 시트 | 게임 엔진 가져오기 또는 다른 미리보기 제작 |
 
 [설치 및 사용 시작 →](../../README.ko.md)
+
+[연속 루프: 걷기](../right-profile-walk/README.ko.md) · [일시 정지가 있는 루프: 공격](../right-profile-attack/README.ko.md) · [비반복 동작: 쓰러지기](../right-profile-death/README.ko.md)

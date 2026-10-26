@@ -121,3 +121,5 @@
 | 最終透過シート | ゲームエンジンへの取り込みや別のプレビュー |
 
 [インストールして使う →](../../README.ja.md)
+
+[連続ループ：歩行](../right-profile-walk/README.ja.md) · [停止を伴うループ：攻撃](../right-profile-attack/README.ja.md) · [非ループ：倒れる動作](../right-profile-death/README.ja.md)

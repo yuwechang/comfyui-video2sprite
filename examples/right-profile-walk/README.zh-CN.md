@@ -121,3 +121,5 @@
 | 最终透明精灵图集 | 导入游戏引擎或制作其他预览 |
 
 [开始安装与使用 →](../../README.zh-CN.md)
+
+[连续循环：行走](../right-profile-walk/README.zh-CN.md) · [非连续循环：攻击](../right-profile-attack/README.zh-CN.md) · [不可循环：死亡](../right-profile-death/README.zh-CN.md)

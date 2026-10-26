@@ -1,0 +1,5 @@
+Subject & Style: The same 2D anime female martial artist, with the reference identity, costume, proportions and clear outlines. Full body, facing screen right.
+
+Environment: Maintain the existing plain gray scene. Static camera at the same position, angle and distance, showing the complete character throughout.
+
+Action Sequence: Begin in the supplied natural standing pose. First raise both fists and settle into a stable right-facing fighting guard, briefly holding this prepared posture. Then perform one complete defeated collapse: the knees buckle, the torso loses strength and folds downward, and she falls onto her side on the ground close to her original standing position. Her arms and legs settle naturally, with her ponytail and waist sashes following the fall. Finish lying motionless on the ground and remain in that final defeated pose for the rest of the shot.

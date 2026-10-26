@@ -14,7 +14,9 @@ Codex は要望の理解、プロンプト作成、結果の確認を担当し�
   </tr>
 </table>
 
-**[制作手順とサンプル素材のダウンロード →](examples/right-profile-walk/README.ja.md)**
+- [連続ループ：歩行](examples/right-profile-walk/README.ja.md)
+- [停止を伴うループ：攻撃](examples/right-profile-attack/README.ja.md)
+- [非ループ：倒れる動作](examples/right-profile-death/README.ja.md)
 
 自然な立ち姿、動作用の余白を備えたキャンバス、グレー背景の動画、透過シートまで、実際の成果と素材の再利用方法を紹介します。
 

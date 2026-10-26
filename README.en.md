@@ -14,7 +14,9 @@ Codex interprets requests, writes prompts, and reviews results. Local Python han
   </tr>
 </table>
 
-**[See the complete walkthrough and download the example assets →](examples/right-profile-walk/README.en.md)**
+- [Continuous loop: walking](examples/right-profile-walk/README.en.md)
+- [Loop with a pause: attack](examples/right-profile-attack/README.en.md)
+- [Non-looping action: death](examples/right-profile-death/README.en.md)
 
 Follow the actual results from the standing reference and performance canvas through the gray-background video to the transparent sheet, including assets you can reuse.
 

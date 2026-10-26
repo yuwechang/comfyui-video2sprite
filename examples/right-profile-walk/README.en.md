@@ -121,3 +121,5 @@ The checkerboard is for display only; the original PNG is transparent.
 | Transparent sheet | Import into a game engine or create other previews |
 
 [Install and start →](../../README.en.md)
+
+[Continuous loop: walking](../right-profile-walk/README.en.md) · [Loop with a pause: attack](../right-profile-attack/README.en.md) · [Non-looping action: death](../right-profile-death/README.en.md)
