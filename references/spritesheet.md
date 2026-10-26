@@ -2,15 +2,25 @@
 
 確認成品播放時間與本次統一縮放倍率。成品預設 8 格，依動作複雜度增加，不設固定上限。
 
-Codex 檢視來源影片，選擇清楚、完整的動作區間，循環需確認首尾銜接。區間內由 Python 等距取樣。將去背提示詞存為 UTF-8，描述保留全部角色姿勢與細節、保持格子位置與整張尺寸、移除背景並輸出透明 PNG。執行一次：
+Codex 依演出接點是否停頓及首尾能否銜接，指定 `--motion-type`：
+
+| 類型 | 參數 | 自動選段 |
+| --- | --- | --- |
+| 連續循環 | `continuous` | 找近似首尾，取頭至尾−1，接點不停頓 |
+| 非連續循環 | `paused` | 找近似起手與回復姿態，取頭至尾，保留接點停頓 |
+| 不可循環 | `once` | 先找末端穩定段，再向前找最後一段起始穩定段，取頭至尾 |
+
+Python 使用低解析度影格比較姿勢、運動與穩定程度，不依賴前端設定或動作名稱。不可循環頭取起始穩定段最後一格，尾取末端穩定段第一格；排除自然站立與姿態轉換。循環需包含實際運動，不能把靜止片段當成循環。
 
 ```text
-python scripts/finish_animation.py source.mp4 --scale 0.5 --image-profile .local/image-profile.json --job work/action/finish-job --output outputs/action --prompt-file work/action/remove-background.txt --count 8 --start 0 --end 35 --seconds 0.8 --loop
+python scripts/finish_animation.py source.mp4 --motion-type continuous --scale 0.5 --image-profile .local/image-profile.json --job work/action/finish-job --output outputs/action --prompt-file work/action/remove-background.txt --count 8 --seconds 0.8
 ```
 
-`--start` 與 `--end` 為從 0 起算的影格編號，end 包含在區間內。循環區間不包含下一次循環的重複起點。`--loop` 不重複收取區間終點；非循環取樣包含兩端。GIF 預覽一律自動重播，獨立於動作的循環設定。
+自動選段資料存入工作目錄 `auto-segment.json`。無明確結果時，Codex 檢視影片，明確傳入 `--start`、`--end` 覆寫區間，不固定排除幾秒。兩者均為從 0 起算且包含 end 的影格編號。程式在區間內等距選出所需張數；連續循環省略重複尾格，其餘保留兩端。GIF 預覽一律自動重播。
 
-`--scale` 是通用影像縮放倍率，預設 1；Codex 有明確縮回倍率時直接傳入。後端不讀取前端設定、基準框或留白公式。所有選中影格先使用同一倍率縮放，再分析背景與共同範圍；不逐幀按角色外接框重新縮放。使用者直接提供影片且需要限制最終格子大小時，可另用 `--max-side` 指定裁切後的最大邊長；按既定角色尺度縮回時省略它，讓伸展動作保留完整範圍。
+`--scale` 預設 1，是所有選中影格的統一縮回倍率。後端不讀取前端基準框、站姿或留白設定。使用者直接提供影片而需要限制交付格子大小時，可另用 `--max-side`；按既定角色尺度縮回時省略它。
+
+將去背提示詞存為 UTF-8，描述保留所有姿勢、格子位置與尺寸，移除背景並輸出透明 PNG。
 
 Python 只分析選中影格，從各格外框取樣估計實際純色背景，再依色差閾值取得內容範圍；預設閾值為各 RGB 通道最大差 32，可用 `--background-tolerance` 調整。
 
@@ -23,3 +33,5 @@ Python 只分析選中影格，從各格外框取樣估計實際純色背景，�
 程式接續完成選幀、統一縮放、共同裁切與底部補邊、拼接、透過本機圖片工作流整張去背一次、清空未用格子並確保每格底部 1 px 透明、從最終影格表製作透明 GIF，以及規格檢查。輸出為 `spritesheet.png`、`preview.gif`、`animation.json`，包含原影片尺寸、影格縮放倍率、縮放後座標中的共同裁切框及格子尺寸。成品播放時間獨立於來源影片速度；GIF 以 10 毫秒為單位分配時間，Alpha 小於 128 的像素設為透明，其餘不透明，PNG 保留完整 Alpha。Codex 最後檢視成品，再交付 PNG 與 GIF。
 
 多個動作各自選區間、計算裁切框，使用獨立工作目錄與輸出目錄執行完整流程。每個動作各交付一張透明影格表與一張透明 GIF。
+
+交付時以 `scripts/package_delivery.py --manifest assets.json --output delivery.zip` 打包；清單明確提供 `video`、`animation`（成品 JSON）及 `files`（封存內相對路徑對應素材路徑）。收集上傳圖、站立參考、影片輸入與實際使用的提示詞，程式匯出全部與選中影格並封存成品。只收集實際使用的素材，不猜前端目錄。聊天中直接展示 GIF 與透明影格表，附 ZIP 下載。

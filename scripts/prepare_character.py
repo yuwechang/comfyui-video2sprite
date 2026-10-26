@@ -165,24 +165,6 @@ def expand_canvas(canvas, source_geometry, target_geometry, background):
     return result
 
 
-def align_pose(image, geometry):
-    rgba = image.convert('RGBA')
-    bbox = visible_mask(rgba).getbbox()
-    if bbox is None:
-        raise ValueError('No visible pose to align')
-    x0, _, x1, bottom = geometry['box']
-    target_left = x0 + (x1 - x0 - (bbox[2] - bbox[0])) // 2
-    dx, dy = target_left - bbox[0], bottom - bbox[3]
-    translated_bbox = [bbox[0] + dx, bbox[1] + dy, bbox[2] + dx, bbox[3] + dy]
-    if translated_bbox[0] < 0 or translated_bbox[1] < 0 or translated_bbox[2] > rgba.width or translated_bbox[3] > rgba.height:
-        raise ValueError('Pose cannot be translated into canvas without clipping; inspect scale')
-    translated = Image.new('RGBA', rgba.size)
-    # Integer offset only: preserve pixel values, dimensions and anatomical scale.
-    translated.paste(rgba, (dx, dy))
-    return translated, {'offset': [dx, dy], 'before_bbox': list(bbox),
-                        'after_bbox': translated_bbox, 'scale': 1}
-
-
 def load_cutout(args):
     with Image.open(args.image) as source:
         image = source.convert('RGBA')
@@ -196,11 +178,6 @@ def load_cutout(args):
     return image
 
 
-def bottom_center(image):
-    geometry = {'box': [0, 0, image.width, image.height]}
-    return align_pose(image, geometry)
-
-
 def inset_box(size):
     width, height = size
     padding = math.ceil(min(size) * .03)
@@ -209,31 +186,36 @@ def inset_box(size):
     return padding, [padding, padding, width-padding, height-padding]
 
 
+def standing_anchor(image):
+    mask = visible_mask(image)
+    bbox = mask.getbbox()
+    if bbox is None:
+        raise ValueError('No visible standing character')
+    band = max(1, math.ceil((bbox[3]-bbox[1])*.05))
+    lower = mask.crop((0,bbox[3]-band,image.width,bbox[3])).getbbox()
+    return [(lower[0]+lower[2])/2, bbox[3]]
+
+
 def reference_with_inset(image):
     padding, box = inset_box(image.size)
     bbox = visible_mask(image).getbbox()
     if bbox is None:
         raise ValueError('No visible standing character')
-    factor = min((box[2]-box[0])/(bbox[2]-bbox[0]), (box[3]-box[1])/(bbox[3]-bbox[1]))
-    size = (max(1, math.floor((bbox[2]-bbox[0])*factor)),
-            max(1, math.floor((bbox[3]-bbox[1])*factor)))
-    subject = image.crop(bbox)
-    if subject.size != size:
-        subject = subject.resize(size, Image.Resampling.LANCZOS)
-    x, y = box[0]+(box[2]-box[0]-size[0])//2, box[3]-size[1]
-    result = Image.new('RGBA', image.size)
-    result.paste(subject, (x,y))
-    return result, {'padding': padding, 'inner_box': box, 'factor': factor,
-                    'source_bbox': list(bbox), 'placed_bbox': [x,y,x+size[0],y+size[1]]}
-
-
-def pose_with_inset(image):
-    padding, box = inset_box(image.size)
-    result, info = align_pose(image, {'box': box})
-    bounds = info['after_bbox']
-    if bounds[0] < box[0] or bounds[1] < box[1] or bounds[2] > box[2]:
-        raise ValueError('Pose needs more character-canvas padding to retain its scale and inset')
-    return result, {**info, 'padding': padding, 'inner_box': box}
+    anchor = standing_anchor(image)
+    radius = max(anchor[0]-bbox[0], bbox[2]-anchor[0])
+    factor = min((box[2]-box[0]-2)/(2*radius), (box[3]-box[1])/(bbox[3]-bbox[1]))
+    subject=image.crop(bbox)
+    size=(max(1,math.floor(subject.width*factor)),max(1,math.floor(subject.height*factor)))
+    scaled=subject.resize(size,Image.Resampling.LANCZOS) if size!=subject.size else subject
+    ax=(anchor[0]-bbox[0])*size[0]/subject.width
+    ay=size[1]
+    dx,dy=round(image.width/2-ax),box[3]-size[1]
+    result=Image.new('RGBA',image.size)
+    result.paste(scaled,(dx,dy))
+    return result, {'padding':padding,'inner_box':box,'factor':factor,
+                    'source_bbox':list(bbox),'source_anchor':anchor,
+                    'anchor':[ax+dx,ay+dy], 'offset':[dx,dy],
+                    'placed_bbox':list(visible_mask(result).getbbox())}
 
 
 def save_preview(image, output):
@@ -271,65 +253,28 @@ def standing_reference(args):
     target = output / 'standing.png'
     image.save(target)
     report = {'standing': str(target.resolve()), 'canvas_size': list(image.size),
-              'scale_side': max(image.size), 'alignment': alignment,
+              'scale_side': max(image.size), 'anchor': alignment['anchor'], 'alignment': alignment,
               'preview': save_preview(image, output)}
     save(output / 'standing.json', report)
     return report
 
 
-def review_pose(args):
-    image, alignment = pose_with_inset(load_cutout(args))
-    output = Path(args.output)
-    output.mkdir(parents=True, exist_ok=True)
-    target = output / 'first-frame.png'
-    image.save(target)
-    report = {'image': str(target.resolve()), 'canvas_size': list(image.size),
-              'alignment': alignment, 'preview': save_preview(image, output)}
-    save(output / 'first-frame.json', report)
-    return report
-
-
-def pose_input(args):
-    standing_path = Path(args.standing_reference)
-    standing = json.loads(standing_path.read_text(encoding='utf-8'))
-    with Image.open(standing['standing']) as source:
-        image = source.convert('RGBA')
-    padding = [getattr(args, 'pad_' + side, 0) for side in ('left', 'top', 'right', 'bottom')]
-    if any(type(value) is not int or value < 0 for value in padding):
-        raise ValueError('Pose padding must be nonnegative integer pixels')
-    left, top, right, bottom = padding
-    result = Image.new('RGBA', (image.width+left+right, image.height+top+bottom))
-    result.paste(image, (left, top))
-    output = Path(args.output)
-    output.mkdir(parents=True, exist_ok=True)
-    target = output / 'pose-input.png'
-    result.save(target)
-    report = {'standing_reference': str(standing_path.resolve()),
-              'canvas_size': list(result.size), 'standing_canvas_size': standing['canvas_size'],
-              'scale_side': standing['scale_side'], 'padding': padding, 'standing_offset': [left, top],
-              'image': str(target.resolve())}
-    save(output / 'pose-input.json', report)
-    return report
-
-
-def place_at_scale(image, geometry, scale_side):
-    # The fixed standing canvas defines scale; this pose's bounds only define translation.
+def place_at_scale(image, geometry, scale_side, anchor=None):
     factor = geometry['side'] / scale_side
-    size = tuple(max(1, round(value*factor)) for value in image.size)
-    scaled = image.resize(size, Image.Resampling.LANCZOS) if image.size != size else image.copy()
+    anchor = anchor or standing_anchor(image)
+    size = tuple(max(1,round(value*factor)) for value in image.size)
+    scaled = image.resize(size,Image.Resampling.LANCZOS) if image.size!=size else image.copy()
+    dx = round(geometry['width']/2-anchor[0]*size[0]/image.width)
+    dy = round(geometry['box'][3]-anchor[1]*size[1]/image.height)
     bbox = visible_mask(scaled).getbbox()
-    if bbox is None:
-        raise ValueError('No visible character')
-    left, _, right, bottom = geometry['box']
-    dx = left + (right-left-(bbox[2]-bbox[0]))//2 - bbox[0]
-    dy = bottom-bbox[3]
-    placed = [bbox[0]+dx, bbox[1]+dy, bbox[2]+dx, bbox[3]+dy]
-    if min(placed[:2]) < 0 or placed[2] > geometry['width'] or placed[3] > geometry['height']:
-        raise ValueError('First frame exceeds video canvas; increase performance padding')
-    result = Image.new('RGBA', (geometry['width'], geometry['height']))
-    result.paste(scaled, (dx, dy))
-    return result, {'factor': factor, 'scale_side': scale_side, 'scaled_canvas_size': list(size),
-                    'offset': [dx, dy], 'placed_bbox': placed}
+    placed = [bbox[0]+dx,bbox[1]+dy,bbox[2]+dx,bbox[3]+dy]
+    if min(placed[:2])<0 or placed[2]>geometry['width'] or placed[3]>geometry['height']:
+        raise ValueError('Standing character exceeds performance canvas; increase padding')
+    result = Image.new('RGBA',(geometry['width'],geometry['height']))
+    result.paste(scaled,(dx,dy))
+    return result, {'factor':factor,'scale_side':scale_side,'source_anchor':anchor,
+                    'scaled_canvas_size':list(size),'offset':[dx,dy],'placed_bbox':placed,
+                    'anchor':[anchor[0]*size[0]/image.width+dx,anchor[1]*size[1]/image.height+dy]}
 
 
 def prepare(args):
@@ -370,9 +315,7 @@ def prepare(args):
     if prior and not detection['prepared']:
         raise ValueError('Image does not match the supplied preparation layout')
     standing_path = getattr(args, 'standing_reference', None)
-    pose_path = getattr(args, 'pose_input', None)
     placement = None
-    pose_alignment = None
     if detection['prepared']:
         source_side = source_geometry.get('source_side', source_geometry['side'])
         geometry = generation_layout(args.side, source_side, multiple_x, multiple_y,
@@ -391,29 +334,21 @@ def prepare(args):
             placement['factor'] *= ratio
         if prior:
             standing_path = standing_path or prior.get('standing_reference')
-            pose_path = pose_path or prior.get('pose_input')
     else:
         image = load_cutout(args)
         if standing_path:
             standing = json.loads(Path(standing_path).read_text(encoding='utf-8'))
             source_side = standing['scale_side']
             expected_size = standing['canvas_size']
-            if pose_path:
-                pose = json.loads(Path(pose_path).read_text(encoding='utf-8'))
-                if Path(pose['standing_reference']).resolve() != Path(standing_path).resolve():
-                    raise ValueError('Pose input and standing reference do not match')
-                expected_size = pose['canvas_size']
             if list(image.size) != expected_size:
-                raise ValueError('First-frame canvas size does not match its pose input')
+                raise ValueError('Standing image canvas does not match its reference')
         else:
-            if pose_path:
-                raise ValueError('Pose input requires a standing reference')
             # A directly supplied standing image also uses its full canvas as scale reference.
             source_side = max(image.size)
-        image, pose_alignment = bottom_center(image)
         geometry = generation_layout(args.side, source_side, multiple_x, multiple_y,
                                      max_pixels=max_pixels, **levels)
-        subject, placement = place_at_scale(image, geometry, source_side)
+        anchor = standing.get('anchor') if standing_path else None
+        subject, placement = place_at_scale(image, geometry, source_side, anchor)
         background = choose_background(subject)
         canvas = flatten(subject, background)
     target = output / 'prepared.png'
@@ -421,24 +356,20 @@ def prepare(args):
     report = {'geometry': geometry, 'restore_scale': geometry['restore_scale'],
               'background_rgb': list(background), 'detection': detection, 'placement': placement,
               'standing_reference': str(Path(standing_path).resolve()) if standing_path else None,
-              'pose_input': str(Path(pose_path).resolve()) if pose_path else None,
-              'pose_alignment': pose_alignment, 'prepared': str(target.resolve())}
+              'prepared': str(target.resolve())}
     save(output / 'preparation.json', report)
     return {key: report[key] for key in ('geometry', 'restore_scale', 'background_rgb', 'prepared')}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--stage', choices=('standing', 'pose-input', 'review', 'layout'), default='layout')
+    parser.add_argument('--stage', choices=('standing', 'layout'), default='layout')
     parser.add_argument('--image')
     parser.add_argument('--side', type=int)
     parser.add_argument('--image-profile', default='.local/image-profile.json')
     parser.add_argument('--job')
     parser.add_argument('--output', required=True)
     parser.add_argument('--standing-reference')
-    parser.add_argument('--pose-input', help='Pose-input JSON containing source-canvas padding')
-    for side in ('left', 'top', 'right', 'bottom'):
-        parser.add_argument('--pad-' + side, type=int, default=0)
     parser.add_argument('--multiple-x', type=int, default=32)
     parser.add_argument('--multiple-y', type=int, default=32)
     parser.add_argument('--expand-horizontal', type=int, help='Total extra S/4 levels on each side')
@@ -446,15 +377,12 @@ def main():
     parser.add_argument('--preparation', help='Previous frontend preparation.json for an existing canvas')
     parser.add_argument('--video-profile', default='.local/profile.json')
     args = parser.parse_args()
-    if args.stage != 'pose-input' and (not args.image or not args.job):
+    if not args.image or not args.job:
         parser.error('--image and --job are required for standing/layout')
     if args.stage == 'layout' and not args.side:
         parser.error('--side is required for layout')
-    if args.stage == 'pose-input' and not args.standing_reference:
-        parser.error('--standing-reference is required for pose-input')
     try:
-        action = {'standing': standing_reference, 'pose-input': pose_input,
-                  'review': review_pose, 'layout': prepare}[args.stage]
+        action = {'standing': standing_reference, 'layout': prepare}[args.stage]
         print(json.dumps(action(args), ensure_ascii=False))
     except Exception as exc:
         print(json.dumps({'error': str(exc), 'stage': args.stage}, ensure_ascii=False))

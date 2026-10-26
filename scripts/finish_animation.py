@@ -9,8 +9,8 @@ from spritesheet import prepare, finish
 
 
 def finish_action(video, max_side, image_profile, prompt_file, job, output,
-                  count, start, end, seconds, loop, tolerance=32, scale=1):
-    report = prepare(video, job, max_side, count, start, end, seconds, loop, tolerance, scale)
+                  count, start, end, seconds, loop, tolerance=32, scale=1, motion_type=None):
+    report = prepare(video, job, max_side, count, start, end, seconds, loop, tolerance, scale, motion_type)
     prompt = Path(prompt_file).read_text(encoding='utf-8')
     profile = json.loads(Path(image_profile).read_text(encoding='utf-8'))
     alignment = profile.get('input_alignment', {'width': 1, 'height': 1})
@@ -55,15 +55,16 @@ def main():
     parser.add_argument('--scale', type=float, default=1, help='Uniform frame scale before common crop')
     parser.add_argument('--background-tolerance', type=int, default=32)
     parser.add_argument('--count', type=int, default=8)
-    parser.add_argument('--start', type=int, default=0)
-    parser.add_argument('--end', type=int, required=True)
+    parser.add_argument('--start', type=int)
+    parser.add_argument('--end', type=int)
+    parser.add_argument('--motion-type', choices=('continuous','paused','once'))
     parser.add_argument('--seconds', type=float, required=True)
     parser.add_argument('--loop', action='store_true')
     args = parser.parse_args()
     try:
         result = finish_action(args.video, args.max_side, args.image_profile, args.prompt_file,
                                args.job, args.output, args.count, args.start, args.end,
-                               args.seconds, args.loop, args.background_tolerance, args.scale)
+                               args.seconds, args.loop, args.background_tolerance, args.scale, args.motion_type)
         print(json.dumps({key: result[key] for key in
                           ('frames', 'cell_width', 'cell_height', 'columns', 'rows', 'sheet', 'preview', 'verified')},
                          ensure_ascii=False))

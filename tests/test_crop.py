@@ -180,7 +180,7 @@ class CropTests(unittest.TestCase):
             def fake_process(profile, image, prompt, job):
                 jobs.append(str(job))
                 return {'file': str(job / 'result.png')}
-            def fake_prepare(video, job, max_side, count, start, end, seconds, loop, tolerance, scale=1):
+            def fake_prepare(video, job, max_side, count, start, end, seconds, loop, tolerance, scale=1, motion_type=None):
                 return {'input_sheet': str(Path(job) / 'input-sheet.png'), 'video': video,
                         'columns': 4, 'rows': 2, 'cell_width': 20, 'cell_height': 30}
             def fake_finish(image, report, output):

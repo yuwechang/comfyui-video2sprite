@@ -134,12 +134,26 @@ def scale_frames(frames, scale):
             for frame in frames]
 
 
-def prepare(video, output, max_side, count, start, end, seconds, loop, tolerance=32, scale=1):
+def prepare(video, output, max_side, count, start, end, seconds, loop, tolerance=32, scale=1, motion_type=None):
     if seconds <= 0:
         raise ValueError('Duration must be positive')
     timings(seconds, count)
     folder = Path(output)
     folder.mkdir(parents=True, exist_ok=True)
+    automatic = None
+    if motion_type is not None:
+        loop = motion_type == 'continuous'
+    if start is None and end is None:
+        if motion_type is None:
+            raise ValueError('Provide a motion type for automatic selection, or both start and end')
+        from select_segment import select
+        automatic = select(video, motion_type, count)
+        (folder/'auto-segment.json').write_text(json.dumps(automatic,indent=2),encoding='utf-8')
+        if automatic['status'] != 'selected':
+            raise ValueError('No clear automatic interval; inspect auto-segment.json and set start/end')
+        start,end = automatic['start'],automatic['end']
+    elif start is None or end is None:
+        raise ValueError('Manual selection requires both start and end')
     indices = sample_indices(start, end, count, loop)
     selection = '+'.join(f'eq(n\\,{index})' for index in indices)
     with tempfile.TemporaryDirectory(dir=folder) as tmp:
@@ -164,7 +178,8 @@ def prepare(video, output, max_side, count, start, end, seconds, loop, tolerance
             'columns': columns, 'rows': rows, 'order': 'left-to-right, top-to-bottom',
             'sample_indices': indices, 'duration_ms': sum(timings(seconds, count)),
             'requested_seconds': seconds, 'loop': loop, 'input_sheet': str(target.resolve()),
-            'original_frame_size': original_size, 'frame_scale': scale, **crop_info}
+            'original_frame_size': original_size, 'frame_scale': scale,
+            'motion_type': motion_type, 'automatic_selection': automatic, **crop_info}
 
 
 def finish(processed_sheet, report, output):
@@ -223,13 +238,14 @@ def main():
     parser.add_argument('--scale', type=float, default=1, help='Uniform frame scale before common crop')
     parser.add_argument('--background-tolerance', type=int, default=32)
     parser.add_argument('--count', type=int, default=8)
-    parser.add_argument('--start', type=int, default=0)
-    parser.add_argument('--end', type=int, required=True)
+    parser.add_argument('--start', type=int)
+    parser.add_argument('--end', type=int)
+    parser.add_argument('--motion-type', choices=('continuous','paused','once'))
     parser.add_argument('--seconds', type=float, required=True)
     parser.add_argument('--loop', action='store_true')
     args = parser.parse_args()
     result = prepare(args.video, args.output, args.max_side, args.count, args.start, args.end,
-                     args.seconds, args.loop, args.background_tolerance, args.scale)
+                     args.seconds, args.loop, args.background_tolerance, args.scale, args.motion_type)
     (Path(args.output) / 'selection.json').write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding='utf-8')
     print(json.dumps(result, ensure_ascii=False))
 

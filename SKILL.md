@@ -15,6 +15,6 @@ description: 使用本機 ComfyUI 將角色圖片與動作描述製作成動畫�
 
 使用者提供影片時，檢視並選取動作區間，直接讀取 [影格表與預覽](references/spritesheet.md)。
 
-準備影片輸入圖片時，讀取 [圖片預處理](references/image-processing.md)。先建立使用者確認的自然站立參考，再按需要準備動作首幀；產生的首幀交給使用者確認，需修改時調整後再次展示。Python 沿用站立尺度，補償位置並建立影片演出版面，保留縮回倍率。檢視構圖後，再讀取 [影片生成](references/generation.md)。
+準備影片輸入圖片時，讀取 [圖片預處理](references/image-processing.md)，建立使用者確認的自然站立參考、固定站位與演出版面，保留縮回倍率。直接以站立版面生成動作；再讀取 [影片生成](references/generation.md)。
 
-取得影片後，檢視動作完整性與清晰度，選定取樣區間，再讀取 [影格表與預覽](references/spritesheet.md)，以明確的統一縮放倍率完成處理與交付。多個動作分別建立任務目錄與成品。
+取得影片後，判斷動作屬於連續循環、非連續循環或不可循環，再讀取 [影格表與預覽](references/spritesheet.md)，由 Python 自動選段及等距取樣，以明確的統一縮放倍率完成處理與交付；判定不明確時才由 Codex 檢視指定區間。多個動作分別建立任務目錄與成品。
