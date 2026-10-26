@@ -1,0 +1,7 @@
+Subject & Style: 2D anime animation of the same female martial artist in the supplied first frame, full body in strict right-facing side profile. Preserve her face, brown ponytail, red-and-gold martial arts costume, black gloves, white trousers, red patterned sashes and red-and-black shoes, with consistent body proportions and clear line art.
+
+Environment: Maintain the existing plain gray scene unchanged throughout the video.
+
+Camera & Effects: Static full-body side view at the same angle and distance throughout. The character stays at the same location in the frame, walking in place facing screen right. Clean character motion demonstration.
+
+Action Sequence: Begin immediately from the supplied walking contact pose and perform one complete smooth walking cycle at a measured, deliberate pace. Alternate the legs through contact, weight support, passing and the opposite contact, then repeat the other half of the stride to return naturally to the opening pose. Arms swing gently opposite the legs; the body has a subtle natural rise and fall. Ponytail and waist sashes follow the motion with gentle secondary sway. Keep the rhythm even through the beginning and end so the cycle joins seamlessly.

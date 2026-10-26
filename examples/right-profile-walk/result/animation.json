@@ -1,0 +1,154 @@
+{
+  "frames": 8,
+  "cell_width": 141,
+  "cell_height": 249,
+  "columns": 4,
+  "rows": 2,
+  "order": "left-to-right, top-to-bottom",
+  "sample_indices": [
+    6,
+    10,
+    14,
+    18,
+    22,
+    27,
+    31,
+    35
+  ],
+  "duration_ms": 800,
+  "requested_seconds": 0.8,
+  "loop": true,
+  "original_frame_size": [
+    1152,
+    896
+  ],
+  "frame_scale": 0.453900709219858,
+  "source_size": [
+    523,
+    407
+  ],
+  "source_content_boxes": [
+    [
+      201,
+      142,
+      293,
+      390
+    ],
+    [
+      211,
+      142,
+      301,
+      390
+    ],
+    [
+      214,
+      144,
+      325,
+      390
+    ],
+    [
+      206,
+      147,
+      332,
+      389
+    ],
+    [
+      204,
+      146,
+      313,
+      389
+    ],
+    [
+      203,
+      143,
+      295,
+      388
+    ],
+    [
+      210,
+      142,
+      301,
+      388
+    ],
+    [
+      212,
+      145,
+      330,
+      388
+    ]
+  ],
+  "crop_box": [
+    191,
+    142,
+    332,
+    390
+  ],
+  "centre_x": 261.5,
+  "background_rgb": [
+    132,
+    132,
+    132
+  ],
+  "frame_backgrounds": [
+    [
+      132,
+      132,
+      132
+    ],
+    [
+      132,
+      132,
+      132
+    ],
+    [
+      132,
+      132,
+      132
+    ],
+    [
+      132,
+      132,
+      132
+    ],
+    [
+      132,
+      132,
+      132
+    ],
+    [
+      132,
+      132,
+      132
+    ],
+    [
+      132,
+      132,
+      132
+    ],
+    [
+      132,
+      132,
+      132
+    ]
+  ],
+  "background_tolerance": 32,
+  "bottom_padding": 1,
+  "scale": 1,
+  "target_max_side": null,
+  "scaled_content_size": [
+    141,
+    248
+  ],
+  "image_input_padding": [
+    12,
+    14
+  ],
+  "sheet": "spritesheet.png",
+  "preview": "preview.gif",
+  "verified": {
+    "dimensions": true,
+    "cell_alpha": true,
+    "gif_transparency": true,
+    "gif_duration_ms": 800
+  }
+}

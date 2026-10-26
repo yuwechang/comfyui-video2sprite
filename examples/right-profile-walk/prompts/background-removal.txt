@@ -1,0 +1,1 @@
+Remove the background, and output a PNG image. This is an animation sprite sheet with four columns and two rows. Keep the exact canvas size, grid positions, character scale and all eight poses unchanged. Preserve the character's hair, costume details, hands, shoes and waist sashes. Output genuine transparency in the background and between the figures.

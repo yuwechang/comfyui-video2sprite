@@ -1,0 +1,31 @@
+# 本機設定與執行產物
+/.local/
+/work/
+/outputs/
+.env
+.env.*
+!.env.example
+
+# Python 環境、快取與建置產物
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+/build/
+/dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# 編輯器暫存與系統檔案
+*.tmp
+*.bak
+*.swp
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
