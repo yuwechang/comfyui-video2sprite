@@ -1,8 +1,12 @@
 # ComfyUI Video to Sprite
 
+[繁體中文](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [English](README.en.md)
+
 供 Codex 使用的角色動畫 Skill。上傳角色圖片、描述動作，即可透過本機 ComfyUI 製作透明背景動畫影格表及 GIF 預覽；也能提供已生成的影片，接續選幀與交付處理。
 
 Codex 負責理解需求、準備提示詞與檢視結果；本機 Python 負責版面、縮放、等待任務、選幀、裁切、拼接及檢查；ComfyUI 負責圖片處理與影片生成。
+
+對話、確認選項與交付說明會跟隨你使用或指定的語言；工作流提示詞依模型需要撰寫。
 
 <table>
   <tr><th align="center">角色參考圖</th><th align="center">走路循環成品</th></tr>
@@ -95,3 +99,4 @@ Skill 不隨附模型、節點、FFmpeg 或 ffprobe。環境與套件檢查交�
 
 安裝與更新位置依 [OpenAI 官方技能文件](https://learn.chatgpt.com/docs/build-skills) 處理。
 首次工作流設定的欄位與驗證方式見 [環境與工作流對接](references/setup.md)。
+內部執行指引由各語言版本共用，Codex 會以使用者的語言說明。

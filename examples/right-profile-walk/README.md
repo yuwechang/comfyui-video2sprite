@@ -1,5 +1,7 @@
 # 從角色參考圖到走路循環
 
+[繁體中文](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [English](README.en.md)
+
 [← 回到安裝與使用說明](../../README.md)
 
 上傳角色參考圖，確認自然站姿，直接用同一站立版面生成動作影片。Python 排除姿態過渡，自動選出循環並製作透明成品。
