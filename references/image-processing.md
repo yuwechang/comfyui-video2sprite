@@ -12,7 +12,7 @@
 python scripts/prepare_character.py --stage standing --image standing.png --image-profile .local/image-profile.json --job work/character/standing-job --output outputs/character-reference
 ```
 
-含背景時先透過圖片工作流去背。Python 保持畫布尺寸，四邊內距為 `ceil(圖片短邊×3%)`，角色等比例放入內框，水平置中、可見最下緣對齊內框底邊；不畫內框。輸出透明 `standing.png`、灰底確認預覽 `preview.png` 及 `standing.json`，記錄內距與配置倍率。展示此預覽供使用者確認後，才用這張站立圖準備動作首幀。尺度依據是配置後的固定角色畫布長寬，不是後續姿勢的外接框。定位使用 Alpha 至少 16 的可見範圍，輸出保留完整 Alpha。
+含背景時先透過圖片工作流去背。Python 保持畫布尺寸，四邊內距為 `ceil(圖片短邊×3%)`，角色等比例放入內框，水平置中、可見最下緣對齊內框底邊。輸出透明 `standing.png`、並排確認預覽 `preview.png` 及 `standing.json`，記錄內距與配置倍率。預覽左側呈現實際透明素材，右側加灰底及黃色內距框；透明原檔不加背景或框線，與預覽一起提供。展示此預覽供使用者確認後，才用這張站立圖準備動作首幀。尺度依據是配置後的固定角色畫布長寬，不是後續姿勢的外接框。定位使用 Alpha 至少 16 的可見範圍，輸出保留完整 Alpha。
 
 ## 動作首幀
 
@@ -30,7 +30,7 @@ python scripts/prepare_character.py --stage pose-input --standing-reference outp
 python scripts/prepare_character.py --stage review --image pose-result.png --job work/action/review-job --output outputs/action-first-frame
 ```
 
-Python 依目前畫布短邊計算同樣的 3% 內距，只以整數平移水平置中、對齊內框底邊，不縮放角色。較矮姿勢上方自然留出更多空白。若原尺度無法完整放入內框，增加角色畫布空間；不以縮小姿勢填滿內框。輸出透明 `first-frame.png`、`preview.png` 與位移資料 `first-frame.json`。展示定位後預覽給使用者確認，需要時修改後再次整理與展示。這時尚未建立影片演出版面。
+Python 依目前畫布短邊計算同樣的 3% 內距，只以整數平移水平置中、對齊內框底邊，不縮放角色。較矮姿勢上方自然留出更多空白。若原尺度無法完整放入內框，增加角色畫布空間；不以縮小姿勢填滿內框。輸出透明 `first-frame.png`、`preview.png` 與位移資料 `first-frame.json`。同樣以左側透明素材、右側灰底與內距框的並排預覽供使用者確認，需要時修改後再次整理與展示。這時尚未建立影片演出版面。
 
 ## 影片演出版面
 

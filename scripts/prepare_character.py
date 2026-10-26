@@ -5,7 +5,7 @@ import json
 import math
 from pathlib import Path
 from statistics import median
-from PIL import Image, ImageFilter, ImageChops
+from PIL import Image, ImageFilter, ImageChops, ImageDraw, ImageFont
 from process_image import process
 from generate import save
 
@@ -237,8 +237,28 @@ def pose_with_inset(image):
 
 
 def save_preview(image, output):
-    preview = flatten(image, (128,128,128))
-    preview.thumbnail((768,768), Image.Resampling.LANCZOS)
+    actual = image.convert('RGBA').copy()
+    actual.thumbnail((512,720), Image.Resampling.LANCZOS)
+    width, height = actual.size
+    gap, header = 24, 36
+    preview = Image.new('RGBA', (width*2+gap,height+header), (255,255,255,255))
+    # Preserve alpha in the left panel; the right panel alone is presentation artwork.
+    preview.paste(actual, (0,header))
+    review = flatten(actual, (128,128,128)).convert('RGBA')
+    _, box = inset_box(image.size)
+    sx, sy = width/image.width, height/image.height
+    frame = [round(box[0]*sx),round(box[1]*sy),round(box[2]*sx)-1,round(box[3]*sy)-1]
+    ImageDraw.Draw(review).rectangle(frame, outline=(255,190,0,255), width=2)
+    preview.paste(review, (width+gap,header))
+    try:
+        font = ImageFont.truetype('msjh.ttc',18)
+        labels = ('實際使用：透明 PNG','確認用：灰底與內距框')
+    except OSError:
+        font = ImageFont.load_default()
+        labels = ('Actual: transparent PNG','Review: gray + inset')
+    draw = ImageDraw.Draw(preview)
+    for x,label in zip((8,width+gap+8),labels):
+        draw.text((x,7), label, font=font, fill=(35,35,35,255))
     target = output / 'preview.png'
     preview.save(target)
     return str(target.resolve())

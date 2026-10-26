@@ -21,6 +21,19 @@ def character(size=(90, 180)):
 
 
 class PreparationTests(unittest.TestCase):
+    def test_review_panels_preserve_alpha_and_do_not_modify_source(self):
+        image=Image.new('RGBA',(128,192))
+        ImageDraw.Draw(image).rectangle((40,20,79,150),fill=(180,40,30,255))
+        original=image.tobytes()
+        with tempfile.TemporaryDirectory() as folder:
+            path=pc.save_preview(image,Path(folder))
+            with Image.open(path) as preview:
+                self.assertEqual(preview.size,(280,228))
+                self.assertEqual(preview.crop((0,36,128,228)).tobytes(),original)
+                self.assertEqual(preview.getpixel((152,36)),(128,128,128,255))
+                self.assertEqual(preview.getpixel((156,40)),(255,190,0,255))
+            self.assertEqual(image.tobytes(),original)
+
     def test_standing_inset_and_pose_padding(self):
         import json
         with tempfile.TemporaryDirectory() as folder:

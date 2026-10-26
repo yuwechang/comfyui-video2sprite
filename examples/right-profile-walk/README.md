@@ -28,9 +28,9 @@
 
 **ComfyUI**產生面朝右的正側面站姿；**Python**以短邊 3% 計算內距，等比例配置、水平置中並對齊內框底邊。**Codex**展示結果，讓使用者確認外觀與比例。
 
-<p align="center"><img src="images/standing-preview.png" alt="留有均衡內距的自然站立參考圖" height="440"></p>
+<p align="center"><img src="images/standing-preview.png" alt="左側為實際透明站立素材，右側為灰底與黃色內距框的確認圖" width="900"></p>
 
-灰底僅方便檢視，素材本身是透明 PNG。這張原尺寸為 **1024×1536**，內距為 **31 px**，不會畫出定位框。
+左側呈現實際使用的透明素材，右側加灰底與黃色內距框供確認；背景及框線不會加到透明原檔。這張原尺寸為 **1024×1536**，內距為 **31 px**。
 
 [透明站立圖](images/standing.png) · [實際提示詞](prompts/standing.txt)
 
@@ -40,13 +40,9 @@
 
 **Codex**描述自然跨步姿勢，**Python**先在角色畫布左右各補 128 px，保留角色原尺度；**ComfyUI**在 **1280×1536** 畫布產生走路首幀。**Python**只平移定位，依 39 px 內距整理確認預覽，不按新姿勢重新放大。
 
-<table>
-  <tr><th align="center">站立尺度參考</th><th align="center">走路動作首幀</th></tr>
-  <tr>
-    <td align="center"><img src="images/standing-preview.png" alt="站立參考" height="360"></td>
-    <td align="center"><img src="images/first-frame-preview.png" alt="使用者確認的走路首幀" height="360"></td>
-  </tr>
-</table>
+<p align="center"><img src="images/first-frame-preview.png" alt="左側為實際透明走路首幀，右側為灰底與黃色內距框的確認圖" width="900"></p>
+
+首幀同樣左右並排呈現實際素材與確認圖，內距為 **39 px**。確認用的灰底與框線不參與影片生成；影片背景在下一階段另外建立。
 
 **使用者確認這張姿勢後，才接續影片準備。** 若需要調整，先修改目前成果，再展示確認。
 
