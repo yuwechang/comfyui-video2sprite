@@ -7,9 +7,9 @@ Codex 用のキャラクターアニメーション Skill です。キャラク�
 Codex は要望の理解、プロンプト作成、結果の確認を担当します。ローカルの Python はレイアウト、拡縮、ジョブの待機、フレーム選択、切り抜き、結合、検証を担当し、ComfyUI は画像処理と動画生成を担当します。対話、確認の選択肢、納品説明は使用中または指定された言語に合わせます。ワークフローのプロンプトはモデルに適した言語で作成します。
 
 <table>
-  <tr><th>キャラクター参考画像</th><th>歩行ループの完成例</th></tr>
+  <tr><th>キャラクター紹介画像</th><th>歩行ループの完成例</th></tr>
   <tr>
-    <td align="center"><img src="examples/right-profile-walk/images/character-reference.png" alt="アップロードした参考画像" height="270"></td>
+    <td align="center"><img src="docs/images/character-showcase.png" alt="キャラクター紹介画像" height="270"></td>
     <td align="center"><img src="examples/right-profile-walk/result/preview.gif" alt="透過歩行ループ" height="246"><br>8 フレーム · 0.8 秒 · 透過背景</td>
   </tr>
 </table>

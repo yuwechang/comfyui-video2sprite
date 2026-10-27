@@ -9,9 +9,9 @@ Codex 負責理解需求、準備提示詞與檢視結果；本機 Python 負責
 對話、確認選項與交付說明會跟隨你使用或指定的語言；工作流提示詞依模型需要撰寫。
 
 <table>
-  <tr><th align="center">角色參考圖</th><th align="center">走路循環成品</th></tr>
+  <tr><th align="center">角色展示圖</th><th align="center">走路循環成品</th></tr>
   <tr>
-    <td align="center"><img src="examples/right-profile-walk/images/character-reference.png" alt="上傳的角色參考圖" height="270"></td>
+    <td align="center"><img src="docs/images/character-showcase.png" alt="角色展示圖" height="270"></td>
     <td align="center"><img src="examples/right-profile-walk/result/preview.gif" alt="透明背景走路循環" height="246"><br>8 格 · 0.8 秒 · 透明背景</td>
   </tr>
 </table>

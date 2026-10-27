@@ -7,9 +7,9 @@ A character animation Skill for Codex. Upload a character image and describe an 
 Codex interprets requests, writes prompts, and reviews results. Local Python handles layout, scaling, job waiting, frame selection, cropping, packing, and validation. ComfyUI handles image processing and video generation. Conversation, confirmation options, and delivery explanations follow your language or explicit preference; workflow prompts use the language appropriate for the model.
 
 <table>
-  <tr><th>Character reference</th><th>Walking loop</th></tr>
+  <tr><th>Character showcase</th><th>Walking loop</th></tr>
   <tr>
-    <td align="center"><img src="examples/right-profile-walk/images/character-reference.png" alt="Uploaded character reference" height="270"></td>
+    <td align="center"><img src="docs/images/character-showcase.png" alt="Character showcase" height="270"></td>
     <td align="center"><img src="examples/right-profile-walk/result/preview.gif" alt="Transparent walking loop" height="246"><br>8 frames · 0.8 seconds · Transparent</td>
   </tr>
 </table>

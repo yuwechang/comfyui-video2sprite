@@ -7,9 +7,9 @@
 Codex 负责理解需求、准备提示词与检查结果；本机 Python 负责布局、缩放、等待任务、选帧、裁剪、拼接及检查；ComfyUI 负责图片处理与视频生成。对话、确认选项与交付说明会使用你当前使用或指定的语言；工作流提示词按模型需要编写。
 
 <table>
-  <tr><th>角色参考图</th><th>行走循环成品</th></tr>
+  <tr><th>角色展示图</th><th>行走循环成品</th></tr>
   <tr>
-    <td align="center"><img src="examples/right-profile-walk/images/character-reference.png" alt="上传的角色参考图" height="270"></td>
+    <td align="center"><img src="docs/images/character-showcase.png" alt="角色展示图" height="270"></td>
     <td align="center"><img src="examples/right-profile-walk/result/preview.gif" alt="透明背景行走循环" height="246"><br>8 帧 · 0.8 秒 · 透明背景</td>
   </tr>
 </table>

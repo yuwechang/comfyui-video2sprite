@@ -7,9 +7,9 @@ Codex용 캐릭터 애니메이션 Skill입니다. 캐릭터 이미지를 올리
 Codex는 요청 해석, 프롬프트 작성, 결과 검토를 담당합니다. 로컬 Python은 배치, 크기 조절, 작업 대기, 프레임 선택, 자르기, 합치기, 검증을 담당하며, ComfyUI는 이미지 처리와 동영상 생성을 담당합니다. 대화, 확인 선택지, 결과 안내는 사용 중이거나 지정한 언어로 제공됩니다. 워크플로 프롬프트는 모델에 적합한 언어로 작성합니다.
 
 <table>
-  <tr><th>캐릭터 참고 이미지</th><th>걷기 루프 결과</th></tr>
+  <tr><th>캐릭터 소개 이미지</th><th>걷기 루프 결과</th></tr>
   <tr>
-    <td align="center"><img src="examples/right-profile-walk/images/character-reference.png" alt="업로드한 캐릭터 참고 이미지" height="270"></td>
+    <td align="center"><img src="docs/images/character-showcase.png" alt="캐릭터 소개 이미지" height="270"></td>
     <td align="center"><img src="examples/right-profile-walk/result/preview.gif" alt="투명 배경 걷기 루프" height="246"><br>8 프레임 · 0.8초 · 투명 배경</td>
   </tr>
 </table>
