@@ -4,13 +4,13 @@
 
 [← 回到安裝與使用說明](../../README.md)
 
-上傳角色參考圖，確認自然站姿，直接用同一站立版面生成動作影片。Python 排除姿態過渡，自動選出循環並製作透明成品。
+沿用自然站立參考與演出版面生成動作影片；自動選段及共同裁切後，逐張 Refine、去特效並去背，再清理 Alpha、共同裁切及合併交付。
 
 <table>
   <tr><th align="center">上傳的角色參考</th><th align="center">走路循環成品</th></tr>
   <tr>
     <td align="center"><img src="images/character-reference.png" alt="角色宣傳圖" height="300"></td>
-    <td align="center"><img src="result/preview.gif" alt="透明走路循環" height="246"><br>8 格 · 0.8 秒 · 透明背景</td>
+    <td align="center"><img src="result/preview.gif" alt="透明走路循環" height="247"><br>8 格 · 0.8 秒 · 透明背景</td>
   </tr>
 </table>
 
@@ -70,59 +70,48 @@
 
 **可以重用：** 重新選段、取樣或調整交付播放時間，都不必再次生成影片。
 
-## 5. Python 自動找循環並選幀
+來源影片與實際生成提示詞保留原樣；以下成品以目前後段流程重新處理。
 
-**Codex**判斷這是接點不停頓的「連續循環」，指定 `continuous`；**Python**找出近似的首尾姿勢，排除準備與過渡，再等距選幀。
+## 5. 自動選段與取樣
 
-本次自動選定 **70～103 格**。第 **104 格**是近似的重複尾姿勢，因此不重複收取。8 張選中影格為 **70、74、78、83、87、91、96、100**，編號由 0 起算。
+`continuous` · 70–103 · 8 frames
 
-<p align="center"><img src="images/selected-frames.png" alt="實際自動選中的八張來源影格" width="900"></p>
+`70, 74, 78, 83, 87, 91, 96, 100` (0-based source indices)
 
-| 動作類型 | 程式選段方式 |
-| --- | --- |
-| 連續循環 | 近似首尾，頭至尾−1 |
-| 非連續循環 | 近似起手與回復姿態，頭至尾，保留接點停頓 |
-| 不可循環 | 從末端穩定姿態回找最後起始穩定段，頭至尾 |
+![Selected source frames](images/selected-frames.png)
 
-程式判定不明確時，才由 Codex 檢視並明確指定區間。全部來源影格與選中影格均另存於 ZIP。
+## 6. 第一次共同裁切
 
-## 6. 統一縮回、共同裁切與拼接
+155×246 px / frame
 
-**Python**對所有選中影格套用同一倍率，再計算共用裁切框；以影片中線左右對稱保留動作範圍，不逐幀重新置中。底部補 1 px，按左至右、上至下排列為 **4 欄×2 排**。
+![First shared crop](images/first-crop-sheet.png)
 
-<p align="center"><img src="images/spritesheet-before-removal.png" alt="共同裁切後尚未去背的灰底影格表" width="620"></p>
+## 7. 逐張 Refine、去特效與去背
 
-每格 **155×246 px**，整張 **620×492 px**。256×256 是角色尺度基準，交付格子依完整動作範圍裁切，可以是長方形。
+逐張圖片工作流保留姿勢、尺度與位置，修復動態模糊並同時清理背景。上排為第一次共同裁切，下排為圖片工作流的原始輸出。
 
-[下載尚未去背影格表](images/spritesheet-before-removal.png)
+[實際 Refine 提示詞](prompts/refine.txt)
 
-## 7. 整張去背與交付
+![Source and refined comparison](images/refine-comparison.png)
 
-**ComfyUI**對整張影格表去背；**Python**驗證尺寸與透明度，從最終影格表製作 GIF，並將實際素材、全部及選中影格、提示詞打包。**Codex**檢視後，在對話中展示成品並附 ZIP。
+![Raw refined frames](images/refined-sheet-preview.png)
 
-<p align="center"><img src="images/spritesheet-preview.png" alt="棋盤襯底展示透明影格表" width="620"></p>
+## 8. Alpha 清理、再次共同裁切與交付
 
-棋盤格僅作展示；原 PNG 保留真正透明背景。
+僅將 Alpha 小於 8 的值清為 0，保留其餘半透明邊緣；依全部影格共同裁切，底部保留 1 px 透明留白。棋盤格僅供預覽。
 
-<p align="center"><img src="result/preview.gif" alt="最終走路循環 GIF"></p>
+![Alpha and second crop comparison](images/alpha-comparison.png)
 
-| 下載 | 內容 |
-| --- | --- |
-| [透明影格表 PNG](result/spritesheet.png) | 8 格，4 欄×2 排，每格 155×246 |
-| [預覽 GIF](result/preview.gif) | 透明背景，0.8 秒循環 |
-| [完整素材 ZIP](walk-complete.zip) | 約 24 MB，含原圖、站立參考、影片輸入、來源影片、107 張全部影格、8 張選中影格、提示詞與成品 |
-| [成品規格 JSON](result/animation.json) | 自動選段、取樣、共同裁切與播放時間 |
-| [實際去背提示詞](prompts/background-removal.txt) | 整張去背使用的文字 |
+| 影格數 | 單格尺寸 | 排列 | 影格表 | 播放時間 |
+| --- | --- | --- | --- | --- |
+| 8 | 155×247 | 4×2 | 620×494 | 0.8 s |
 
-## 值得保存的素材
+![Final spritesheet](images/spritesheet-preview.png)
 
-| 素材 | 重用方式 |
-| --- | --- |
-| 自然站立參考 | 同一角色的尺度、站位與外觀參考 |
-| 站立演出版面與提示詞 | 在 ComfyUI 生成其他動作或重試設定 |
-| 來源影片與全部影格 | 重新選段、取樣與設定成品時間 |
-| 最終透明影格表 | 匯入遊戲引擎或製作其他預覽 |
+![Animation](result/preview.gif)
 
-[開始安裝與使用 →](../../README.md#複製這句話給-codex)
+[PNG](result/spritesheet.png) · [GIF](result/preview.gif) · [JSON](result/animation.json) · [完整素材包](walk-complete.zip)
 
-[連續循環：走路](../right-profile-walk/README.md) · [非連續循環：攻擊](../right-profile-attack/README.md) · [不可循環：死亡](../right-profile-death/README.md)
+[Workflow / validation](../../references/spritesheet.md)
+
+完整 ZIP 包含來源影片、全部來源影格、選中影格、裁切影格、工作流輸入、原始 Refine 輸出、最終影格、提示詞，以及 PNG／GIF／JSON。

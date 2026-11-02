@@ -94,6 +94,10 @@ def bind(workflow, mapping, url, output, kind='video'):
     required = ({'image_1', 'image_2', 'positive_prompt', 'width', 'height', 'length', 'seed'}
                 if kind == 'video' else {'image_1', 'positive_prompt'})
     bindings = config['bindings']
+    second = config.get('image_2_mode')
+    if (kind == 'video' and isinstance(second, dict) and second.get('optional') is True
+            and isinstance(second.get('omit_inputs'), list)):
+        required.discard('image_2')
     if not required.issubset(bindings):
         raise ValueError('Missing bindings: ' + ', '.join(sorted(required - bindings.keys())))
     schemas = {}

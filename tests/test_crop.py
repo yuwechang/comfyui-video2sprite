@@ -165,74 +165,9 @@ class CropTests(unittest.TestCase):
             self.assertEqual(report['sample_indices'], list(range(8)))
             self.assertEqual(report['crop_box'], [20, 13, 44, 52])
             self.assertEqual((report['cell_width'], report['cell_height']), (24, 40))
-            with Image.open(report['input_sheet']) as packed:
-                for i, frame in enumerate(frames):
-                    x, y = i % 4 * 24, i // 4 * 40
-                    self.assertEqual(packed.crop((x, y, x + 24, y + 40)).tobytes(),
-                                     frame.crop((20, 13, 44, 53)).convert('RGBA').tobytes())
-
-    def test_actions_use_separate_jobs_and_outputs(self):
-        with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
-            (root / 'prompt.txt').write_text('Remove background')
-            (root / 'profile.json').write_text('{}')
-            jobs = []
-            def fake_process(profile, image, prompt, job):
-                jobs.append(str(job))
-                return {'file': str(job / 'result.png')}
-            def fake_prepare(video, job, max_side, count, start, end, seconds, loop, tolerance, scale=1, motion_type=None):
-                return {'input_sheet': str(Path(job) / 'input-sheet.png'), 'video': video,
-                        'columns': 4, 'rows': 2, 'cell_width': 20, 'cell_height': 30}
-            def fake_finish(image, report, output):
-                return {'sheet': str(Path(output) / 'spritesheet.png'), 'video': report['video']}
-            with patch.object(pipeline, 'prepare', side_effect=fake_prepare), \
-                 patch.object(pipeline, 'process', side_effect=fake_process) as process, \
-                 patch.object(pipeline, 'finish', side_effect=fake_finish):
-                results = [pipeline.finish_action(action + '.mp4', 256, root / 'profile.json',
-                                                   root / 'prompt.txt', root / action / 'job',
-                                                   root / action / 'out', 8, 0, 35, .8, True)
-                           for action in ('punch', 'kick')]
-            self.assertEqual(process.call_count, 2)
-            self.assertNotEqual(jobs[0], jobs[1])
-            self.assertNotEqual(results[0]['sheet'], results[1]['sheet'])
-            self.assertEqual([r['video'] for r in results], ['punch.mp4', 'kick.mp4'])
-
-    def test_image_alignment_padding_is_removed_without_scaling(self):
-        with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
-            background = (20, 160, 220)
-            source = Image.new('RGB', (40, 15), background)
-            source.putpixel((5, 5), (255, 0, 0))
-            source.putpixel((27, 6), (0, 255, 0))
-            source.save(root / 'input.png')
-            (root / 'prompt.txt').write_text('Remove background')
-            (root / 'profile.json').write_text(json.dumps({'input_alignment': {'width': 32, 'height': 32}}))
-            report = {'input_sheet': str(root / 'input.png'), 'frames': 2, 'columns': 2, 'rows': 1,
-                      'cell_width': 20, 'cell_height': 15, 'requested_seconds': .2,
-                      'loop': True, 'background_rgb': list(background)}
-            (root / 'job').mkdir()
-            def remove_background(profile, input_path, prompt, job):
-                with Image.open(input_path) as image:
-                    self.assertEqual(image.size, (64, 32))
-                    self.assertEqual(image.getpixel((63, 31)), background)
-                    result = image.convert('RGBA')
-                for y in range(result.height):
-                    for x in range(result.width):
-                        if result.getpixel((x, y))[:3] == background:
-                            result.putpixel((x, y), background + (0,))
-                job.mkdir(parents=True, exist_ok=True)
-                result.save(job / 'result.png')
-                return {'file': str(job / 'result.png')}
-            with patch.object(pipeline, 'prepare', return_value=report), \
-                 patch.object(pipeline, 'process', side_effect=remove_background):
-                result = pipeline.finish_action('video.mp4', 256, root / 'profile.json',
-                                                root / 'prompt.txt', root / 'job', root / 'output',
-                                                2, 0, 1, .2, True)
-            self.assertEqual(result['image_input_padding'], [24, 17])
-            with Image.open(result['sheet']) as image:
-                self.assertEqual(image.size, (40, 15))
-                self.assertEqual(image.getpixel((5, 5)), (255, 0, 0, 255))
-                self.assertEqual(image.getpixel((27, 6)), (0, 255, 0, 255))
+            for path, frame in zip(report['cropped_frames'], frames):
+                with Image.open(path) as cropped:
+                    self.assertEqual(cropped.tobytes(), frame.crop((20,13,44,53)).convert('RGBA').tobytes())
 
 
 if __name__ == '__main__':

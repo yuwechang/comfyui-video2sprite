@@ -4,9 +4,9 @@
 
 [← インストールと使い方](../../README.ja.md)
 
-自然な立ち姿とグレー背景の動作用キャンバスを再利用し、直接動作を生成します。Python が姿勢の移行を除外して区間を選び、等間隔で抽出した後、共通切り抜き、結合、背景除去、納品を行います。
+立ち姿と演出用キャンバスを再利用して動画を生成します。自動選択と共通クロップ後、各フレームを Refine してエフェクトと背景を除去し、Alpha 整理と再共通クロップを経て統合します。
 
-<table><tr><th>キャラクター参考画像</th><th>透過成果物</th></tr><tr><td align="center"><img src="images/character-reference.png" alt="reference" height="300"></td><td align="center"><img src="result/preview.gif" alt="preview" height="249"></td></tr></table>
+<table><tr><th>キャラクター参考画像</th><th>透過成果物</th></tr><tr><td align="center"><img src="images/character-reference.png" alt="reference" height="300"></td><td align="center"><img src="result/preview.gif" alt="preview" height="245"></td></tr></table>
 
 > 右向きのパンチ攻撃。最後は戦闘の構えに戻る。キャラクター基準サイズは 256×256。
 
@@ -58,46 +58,48 @@
 
 [MP4 を表示・取得](video/source.mp4) · [動画プロンプト](prompts/video.txt)
 
-## 5. 区間とフレームを自動選択
+元動画と実際の生成プロンプトはそのまま保持し、以下の成果物は現在の後段処理で作成しています。
 
-**Codex**は `paused` を指定します。似た構えに戻り、ループ接続点で停止できます。**Python**が準備と復帰の安定姿勢を選び、両端を含めます。
+## 5. 自動区間選択とサンプリング
 
-自動区間：**48～94 フレーム**、両端を含みます。等間隔の **12 枚**：**48, 52, 56, 61, 65, 69, 73, 77, 81, 86, 90, 94**。番号は 0 始まりです。
+`paused` · 48–94 · 12 frames
 
-<p align="center"><img src="images/selected-frames.png" alt="selected-frames" width="900"></p>
+`48, 52, 56, 61, 65, 69, 73, 77, 81, 86, 90, 94` (0-based source indices)
 
-## 6. 共通倍率で縮小し、切り抜いて結合
+![Selected source frames](images/selected-frames.png)
 
-**Python**が全選択フレームに同じ倍率を適用し、動画の中心線に対して左右対称な共通切り抜き範囲を求めます。各フレームの中央寄せ、下端合わせ、個別拡縮はしません。下に 1 px を加え、左から右、上から下へ **6 列×2 行**に並べます。
+## 6. 最初の共通クロップ
 
-<p align="center"><img src="images/spritesheet-before-removal.png" alt="spritesheet-before-removal" width="900"></p>
+217×245 px / frame
 
-各セル **217×245 px**、全体 **1302×490 px**。256×256 はスケール基準で、切り抜きは動作全体と相対的な移動を保持します。
+![First shared crop](images/first-crop-sheet.png)
 
-[背景除去前のシート](images/spritesheet-before-removal.png)
+## 7. 各フレームの Refine・エフェクト除去・背景除去
 
-## 7. シート全体の背景を除去して納品
+画像ワークフローは姿勢・大きさ・位置を維持し、動きのぼけを修復して背景も除去します。上段は最初の共通クロップ、下段は画像ワークフローの未加工出力です。
 
-**ComfyUI**がシート全体の背景を一度に除去します。**Python**が寸法、透過、GIF 時間を検証して素材をまとめ、**Codex**が確認して表示します。市松模様は表示用で、元 PNG は透過です。
+[実際の Refine プロンプト](prompts/refine.txt)
 
-<p align="center"><img src="images/spritesheet-preview.png" alt="spritesheet-preview" width="900"></p>
+![Source and refined comparison](images/refine-comparison.png)
 
-<p align="center"><img src="result/preview.gif" alt="preview" width="217"></p>
+![Raw refined frames](images/refined-sheet-preview.png)
 
-GIF は攻撃区間を **0.8 秒**で繰り返します。開始と終了の構えは似ており、接続点に停止を残します。
+## 8. Alpha 整理・再共通クロップ・納品
 
-| ダウンロード | 内容 |
-| --- | --- |
-| [透過 PNG シート](result/spritesheet.png) | 12 · 6×2 · 217×245 px |
-| [GIF プレビュー](result/preview.gif) | 0.8 s |
-| [全素材 ZIP](attack-complete.zip) | 約 27 MB。原画像、立ち姿、入力画像、元動画、全 107 フレーム、選択 12 枚、実際のプロンプト、成果物。 |
-| [成果物 JSON](result/animation.json) | 自動区間選択、抽出、切り抜き、再生時間 |
-| [背景除去プロンプト](prompts/background-removal.txt) | シート全体に使用した文面 |
+Alpha が 8 未満の値のみ 0 にし、他の半透明の縁は維持します。全フレームで共通範囲を再クロップし、下端に透明な 1 px を残します。市松模様はプレビュー専用です。
 
-## 保存しておくと役立つ素材
+![Alpha and second crop comparison](images/alpha-comparison.png)
 
-- 立ち姿とキャンバス：別動作でスケール、位置、外観を再利用。
-- 元動画と全フレーム：再生成せずに区間、手動選択、再生タイミングを変更。
-- 実際のプロンプトと入力画像：ComfyUI で試し、動画を Skill に戻して処理。
+| フレーム数 | セルサイズ | 配置 | シート | 再生時間 |
+| --- | --- | --- | --- | --- |
+| 12 | 217×245 | 6×2 | 1302×490 | 0.8 s |
 
-[連続ループ：歩行](../right-profile-walk/README.ja.md) · [停止を伴うループ：攻撃](../right-profile-attack/README.ja.md) · [非ループ：倒れる動作](../right-profile-death/README.ja.md)
+![Final spritesheet](images/spritesheet-preview.png)
+
+![Animation](result/preview.gif)
+
+[PNG](result/spritesheet.png) · [GIF](result/preview.gif) · [JSON](result/animation.json) · [全素材 ZIP](attack-complete.zip)
+
+[Workflow / validation](../../references/spritesheet.md)
+
+ZIP には元動画、全元フレーム、選択フレーム、クロップ画像、ワークフロー入力、未加工の Refine 出力、最終フレーム、プロンプト、PNG／GIF／JSON を含みます。

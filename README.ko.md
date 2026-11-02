@@ -10,13 +10,16 @@ Codex는 요청 해석, 프롬프트 작성, 결과 검토를 담당합니다. �
   <tr><th>캐릭터 소개 이미지</th><th>걷기 루프 결과</th></tr>
   <tr>
     <td align="center"><img src="docs/images/character-showcase.png" alt="캐릭터 소개 이미지" height="270"></td>
-    <td align="center"><img src="examples/right-profile-walk/result/preview.gif" alt="투명 배경 걷기 루프" height="246"><br>8 프레임 · 0.8초 · 투명 배경</td>
+    <td align="center"><img src="examples/right-profile-walk/result/preview.gif" alt="투명 배경 걷기 루프" height="247"><br>8 프레임 · 0.8초 · 투명 배경</td>
   </tr>
 </table>
 
 - [연속 루프: 걷기](examples/right-profile-walk/README.ko.md)
 - [일시 정지가 있는 루프: 공격](examples/right-profile-attack/README.ko.md)
 - [비반복 동작: 쓰러지기](examples/right-profile-death/README.ko.md)
+- [검 공격: 실제 무기는 보존하고 부가 효과는 제거](examples/right-profile-sword/README.ko.md)
+
+![Per-frame processing](docs/images/pipeline-overview.png)
 
 자연스러운 서 있는 자세, 동작 여백을 둔 캔버스, 회색 배경 동영상, 투명 시트까지 실제 결과와 자료 재사용 방법을 단계별로 소개합니다.
 
@@ -50,7 +53,7 @@ FPS, 치수 배수, 유효한 프레임 수와 범위도 확인합니다. 생성
 
 ### 이미지 워크플로
 
-이미지와 편집 프롬프트 입력, 결과 저장, 자연스러운 서 있는 자세 생성, 실제 투명 PNG 배경 제거를 지원해야 합니다. 시트 전체의 배경을 제거할 때 입력 크기, 셀 위치, 캐릭터 크기를 유지해야 합니다. 이미지 치수 배수 제한도 처음 설정할 때 기록합니다.
+이미지와 편집 프롬프트 입력, PNG 저장, 서 있는 참고 이미지 생성과 프레임별 Refine을 지원해야 합니다. 배경 제거는 Refine과 같은 편집 프롬프트로 요청하며 전용 배경 제거 노드는 필수가 아닙니다. [초기 설정](references/setup.md)에서 실제 투명 배경, 동일 치수와 캐릭터 내용 보존을 검증하고 입력 치수 배수 제한도 기록합니다.
 
 이 프로젝트의 실측 예제는 동영상에 **MiniMax H3**, 이미지에 **Qwen Image 2.1**을 사용합니다. 참고할 수 있는 조합이며, Skill은 노드 연결을 통해 워크플로를 사용하므로 특정 모델에 종속되지 않습니다. 모델 가중치, 노드, API 워크플로는 사용자가 준비하며 Skill 설치에 포함되지 않습니다.
 
@@ -71,9 +74,13 @@ FPS, 치수 배수, 유효한 프레임 수와 범위도 확인합니다. 생성
 
 이미지와 동영상은 로컬 ComfyUI가 처리합니다. 프롬프트 작성, 대화, 시각 검토에는 Codex 사용량이 소비됩니다.
 
+요청하지 않으면 동영상 프롬프트에 반복 횟수를 고정하지 않습니다. 부가 효과를 유도할 때는 “동작이 작용하는 지점에 가늘고 옅은 회색의 반투명 반원호 선이 나타나 힘의 방향을 따라 바깥으로 이동한 뒤 곧 사라진다”라는 공통 표준 문구를 사용하여 캐릭터, 장비, 무기 끝과 세부가 계속 보이도록 합니다. 강한 빛이나 불투명 효과로 대체된 부분의 복원은 보장하지 않습니다. [동영상 생성](references/generation.md)을 참고하세요.
+
+프레임별 Refine, 효과 제거와 배경 제거 후 `--alpha-cutoff 8`로 극히 낮은 Alpha를 지우고 다시 공통 자르기와 합치기를 진행합니다. 나머지 PNG Alpha는 그라데이션을 유지하며 임계값은 조정 가능하고 0은 비활성화입니다. 전달 전에 머리카락, 무기 끝과 손잡이를 원본과 비교합니다. [처리 지침](references/spritesheet.md)을 참고하세요.
+
 ## 기존 동영상 사용하기
 
-동영상과 유지할 동작 구간, 재생 시간, 크기 요구 사항을 제공하면 프레임 선택, 공통 영역 자르기, 합치기, 배경 제거, GIF 제작을 이어갑니다.
+동영상, 동작 구간, 재생 시간과 크기 요구 사항으로 후반 처리를 독립 실행합니다. 프레임 선택, 첫 공통 자르기, 프레임별 Refine 및 효과·배경 제거, Alpha 정리, 두 번째 공통 자르기, 합치기와 GIF 제작을 진행합니다.
 
 적합한 동영상은 다음 조건을 갖춥니다.
 

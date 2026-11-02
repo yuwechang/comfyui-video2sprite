@@ -12,15 +12,15 @@
 python scripts/setup.py --url http://127.0.0.1:8188 inspect workflow.json --output .local/inspection.json
 ```
 
-影片工作流：依節點連線與用途識別兩個圖片輸入、正向提示詞、寬高、影片長度、種子及影片輸出，釐清第二張圖片用途與可省略方式。
+影片工作流：依節點連線與用途識別實際圖片輸入、正向提示詞、寬高、影片長度、種子及影片輸出；有第二張圖片時釐清用途與可省略方式，不為單圖工作流虛構第二個輸入。
 
-圖片工作流：識別輸入圖片、編輯提示詞及圖片輸出，確認輸出節點會保存圖片。自然站立參考生成與去背重用相同設定，能力依實測結果確認。
+圖片工作流：識別輸入圖片、編輯提示詞及可保存 PNG 的輸出。自然站立參考生成與逐張 Refine、去背重用相同設定；去背直接由圖片編輯提示詞要求，不以存在專用去背節點為前提。
 
-節點與欄位存在不足以證明語意，無法判定時詢問使用者。
+節點與欄位存在不足以證明語意，先依連線與用途判讀，缺少必要資訊時詢問使用者。圖片處理能力按下述實測確認。
 
 確認影片長度欄位使用秒或影格數、FPS 的來源、尺寸對齊值、影格數公式與合法範圍。工作流未表達的限制需另行確認。
 
-確認後將對應寫入本機 JSON：`bindings` 內的 `image_1`、`image_2`、`positive_prompt`、`width`、`height`、`length`、`seed` 各為 `[{"node": "節點 ID", "input": "欄位名稱"}]`，支援同一參數更新多處。若欄位是連線，追蹤至上游實際值欄位。另記錄 `output_node`、`image_2_mode`（第二張圖的用途及省略方式）與 `generation`。
+確認後將對應寫入本機 JSON：`bindings` 內的 `image_1`、`positive_prompt`、`width`、`height`、`length`、`seed` 各為 `[{"node": "節點 ID", "input": "欄位名稱"}]`，有第二張輸入時另加 `image_2`，支援同一參數更新多處。若欄位是連線，追蹤至上游實際值欄位。另記錄 `output_node`、`image_2_mode`（第二張圖的用途及省略方式）與 `generation`。單圖工作流明確設定 `"image_2_mode": {"optional": true, "omit_inputs": []}`，不需 `image_2` binding；雙圖工作流允許省略第二張時，`omit_inputs` 列出工作副本需移除的節點輸入，例如 `[{"node": "12", "input": "last_frame"}]`。
 
 若上游是運算節點，無法直接對應獨立數值，可在目標加入 `"mode": "replace_link"`，明確標記執行時在工作副本中將該輸入連線換成實際值。原始工作流保持不變。
 
@@ -36,10 +36,12 @@ python scripts/setup.py --url http://127.0.0.1:8188 bind workflow.json mapping.j
 
 圖片對應 JSON 的 `bindings` 只需 `image_1` 與 `positive_prompt`，格式同上；另指定 `output_node`。以圖片模式驗證與保存：
 
-圖片工作流若有輸入尺寸倍數限制，在對應 JSON 加上 `input_alignment`，以 `width`、`height` 記錄各自倍數。後端送去背前只在整張表右側、底部補背景，處理後裁回原尺寸。
+圖片工作流若有輸入尺寸倍數限制，在對應 JSON 加上 `input_alignment`，以 `width`、`height` 記錄各自倍數。後段逐張送入 Refine 與去背前，只在各張右側、底部補背景，處理後裁回原尺寸。
 
 ```text
 python scripts/setup.py --url http://127.0.0.1:8188 bind image-workflow.json image-mapping.json --kind image --output .local/image-profile.json
 ```
+
+圖片設定保存後，以現有完整角色圖片和[影格表與預覽](spritesheet.md)的 Refine、去特效與去背提示詞做實測，確認輸出可讀取、尺寸不變，且包含真正透明背景與有效角色內容；並檢視姿勢、尺度、位置及細節是否保留。PNG 副檔名、棋盤格外觀或僅存在 Alpha 通道都不足以證明去背成功。若未通過，先核對提示詞、輸出格式與實際結果，再針對缺少的工作流能力詢問使用者。
 
 兩份本機設定包含使用者的工作流與對應，存於 `.local/`。

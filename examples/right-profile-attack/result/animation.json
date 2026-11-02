@@ -2,8 +2,6 @@
   "frames": 12,
   "cell_width": 217,
   "cell_height": 245,
-  "columns": 6,
-  "rows": 2,
   "order": "left-to-right, top-to-bottom",
   "sample_indices": [
     48,
@@ -22,7 +20,20 @@
   "duration_ms": 800,
   "requested_seconds": 0.8,
   "loop": false,
-  "input_sheet": "../images/spritesheet-before-removal.png",
+  "cropped_frames": [
+    "../images/cropped/000.png",
+    "../images/cropped/001.png",
+    "../images/cropped/002.png",
+    "../images/cropped/003.png",
+    "../images/cropped/004.png",
+    "../images/cropped/005.png",
+    "../images/cropped/006.png",
+    "../images/cropped/007.png",
+    "../images/cropped/008.png",
+    "../images/cropped/009.png",
+    "../images/cropped/010.png",
+    "../images/cropped/011.png"
+  ],
   "original_frame_size": [
     1152,
     896
@@ -226,10 +237,308 @@
     217,
     244
   ],
-  "image_input_padding": [
-    10,
-    22
+  "first_crop": {
+    "crop_box": [
+      153,
+      147,
+      370,
+      391
+    ],
+    "source_size": [
+      523,
+      407
+    ],
+    "source_content_boxes": [
+      [
+        194,
+        152,
+        312,
+        390
+      ],
+      [
+        201,
+        156,
+        356,
+        389
+      ],
+      [
+        207,
+        158,
+        359,
+        389
+      ],
+      [
+        210,
+        157,
+        357,
+        389
+      ],
+      [
+        209,
+        162,
+        360,
+        389
+      ],
+      [
+        208,
+        163,
+        370,
+        389
+      ],
+      [
+        208,
+        160,
+        368,
+        389
+      ],
+      [
+        208,
+        160,
+        368,
+        389
+      ],
+      [
+        208,
+        162,
+        369,
+        389
+      ],
+      [
+        210,
+        159,
+        349,
+        390
+      ],
+      [
+        209,
+        147,
+        319,
+        391
+      ],
+      [
+        194,
+        153,
+        312,
+        391
+      ]
+    ],
+    "bottom_padding": 1
+  },
+  "refinement": [
+    {
+      "source_frame_index": 48,
+      "input": "../images/workflow-input/000.png",
+      "refined": "../images/refined/000.png",
+      "padding": [
+        7,
+        11
+      ]
+    },
+    {
+      "source_frame_index": 52,
+      "input": "../images/workflow-input/001.png",
+      "refined": "../images/refined/001.png",
+      "padding": [
+        7,
+        11
+      ]
+    },
+    {
+      "source_frame_index": 56,
+      "input": "../images/workflow-input/002.png",
+      "refined": "../images/refined/002.png",
+      "padding": [
+        7,
+        11
+      ]
+    },
+    {
+      "source_frame_index": 61,
+      "input": "../images/workflow-input/003.png",
+      "refined": "../images/refined/003.png",
+      "padding": [
+        7,
+        11
+      ]
+    },
+    {
+      "source_frame_index": 65,
+      "input": "../images/workflow-input/004.png",
+      "refined": "../images/refined/004.png",
+      "padding": [
+        7,
+        11
+      ]
+    },
+    {
+      "source_frame_index": 69,
+      "input": "../images/workflow-input/005.png",
+      "refined": "../images/refined/005.png",
+      "padding": [
+        7,
+        11
+      ]
+    },
+    {
+      "source_frame_index": 73,
+      "input": "../images/workflow-input/006.png",
+      "refined": "../images/refined/006.png",
+      "padding": [
+        7,
+        11
+      ]
+    },
+    {
+      "source_frame_index": 77,
+      "input": "../images/workflow-input/007.png",
+      "refined": "../images/refined/007.png",
+      "padding": [
+        7,
+        11
+      ]
+    },
+    {
+      "source_frame_index": 81,
+      "input": "../images/workflow-input/008.png",
+      "refined": "../images/refined/008.png",
+      "padding": [
+        7,
+        11
+      ]
+    },
+    {
+      "source_frame_index": 86,
+      "input": "../images/workflow-input/009.png",
+      "refined": "../images/refined/009.png",
+      "padding": [
+        7,
+        11
+      ]
+    },
+    {
+      "source_frame_index": 90,
+      "input": "../images/workflow-input/010.png",
+      "refined": "../images/refined/010.png",
+      "padding": [
+        7,
+        11
+      ]
+    },
+    {
+      "source_frame_index": 94,
+      "input": "../images/workflow-input/011.png",
+      "refined": "../images/refined/011.png",
+      "padding": [
+        7,
+        11
+      ]
+    }
   ],
+  "final_frames": [
+    "../images/final/000.png",
+    "../images/final/001.png",
+    "../images/final/002.png",
+    "../images/final/003.png",
+    "../images/final/004.png",
+    "../images/final/005.png",
+    "../images/final/006.png",
+    "../images/final/007.png",
+    "../images/final/008.png",
+    "../images/final/009.png",
+    "../images/final/010.png",
+    "../images/final/011.png"
+  ],
+  "refined_crop": {
+    "source_size": [
+      217,
+      245
+    ],
+    "alpha_boxes": [
+      [
+        40,
+        4,
+        159,
+        243
+      ],
+      [
+        44,
+        9,
+        204,
+        242
+      ],
+      [
+        53,
+        10,
+        207,
+        242
+      ],
+      [
+        56,
+        10,
+        205,
+        242
+      ],
+      [
+        56,
+        14,
+        208,
+        242
+      ],
+      [
+        54,
+        15,
+        217,
+        242
+      ],
+      [
+        54,
+        13,
+        216,
+        242
+      ],
+      [
+        54,
+        12,
+        217,
+        242
+      ],
+      [
+        54,
+        15,
+        217,
+        242
+      ],
+      [
+        57,
+        12,
+        197,
+        242
+      ],
+      [
+        55,
+        0,
+        166,
+        244
+      ],
+      [
+        39,
+        6,
+        160,
+        244
+      ]
+    ],
+    "crop_box": [
+      0,
+      0,
+      217,
+      244
+    ],
+    "scale": 1,
+    "bottom_padding": 1,
+    "alpha_cutoff": 8
+  },
+  "columns": 6,
+  "rows": 2,
   "sheet": "spritesheet.png",
   "preview": "preview.gif",
   "verified": {

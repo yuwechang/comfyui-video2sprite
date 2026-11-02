@@ -55,6 +55,27 @@ def package(manifest_path, output):
               'result/spritesheet.png': source_file(report['sheet'], animation.parent),
               'result/preview.gif': source_file(report['preview'], animation.parent)}
     reserved = {'manifest.json', 'result/animation.json'}
+    portable_stages = {}
+    for field, directory in (('cropped_frames', 'cropped'), ('final_frames', 'final')):
+        if field in report:
+            if len(report[field]) != len(indices):
+                raise ValueError(f'{field} count does not match selected frames')
+            portable_stages[field] = []
+            for order, value in enumerate(report[field]):
+                name = f'frames/{directory}/{order:03d}.png'
+                assets[name] = source_file(value, animation.parent)
+                portable_stages[field].append(name)
+    if 'refinement' in report:
+        portable_stages['refinement'] = []
+        if len(report['refinement']) != len(indices):
+            raise ValueError('Refinement count does not match selected frames')
+        for order, record in enumerate(report['refinement']):
+            portable = dict(record)
+            for field in ('input', 'refined'):
+                name = f'frames/refinement/{order:03d}/{field}.png'
+                assets[name] = source_file(record[field], animation.parent)
+                portable[field] = '../' + name
+            portable_stages['refinement'].append(portable)
     for name, value in config.get('files', {}).items():
         name = archive_name(name)
         if name in assets or name in reserved or name.startswith('frames/'):
@@ -84,6 +105,8 @@ def package(manifest_path, output):
         portable = {key: value for key, value in report.items()
                     if key not in ('sheet', 'preview', 'input_sheet')}
         portable.update(sheet='spritesheet.png', preview='preview.gif')
+        for field, value in portable_stages.items():
+            portable[field] = value if field == 'refinement' else ['../' + name for name in value]
         inventory = {'video': next(iter(assets)), 'animation': 'result/animation.json',
                      'files': list(assets), 'all_frames': {'directory': 'frames/all', 'count': len(paths)},
                      'selected_frames': selected,

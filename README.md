@@ -12,13 +12,16 @@ Codex 負責理解需求、準備提示詞與檢視結果；本機 Python 負責
   <tr><th align="center">角色展示圖</th><th align="center">走路循環成品</th></tr>
   <tr>
     <td align="center"><img src="docs/images/character-showcase.png" alt="角色展示圖" height="270"></td>
-    <td align="center"><img src="examples/right-profile-walk/result/preview.gif" alt="透明背景走路循環" height="246"><br>8 格 · 0.8 秒 · 透明背景</td>
+    <td align="center"><img src="examples/right-profile-walk/result/preview.gif" alt="透明背景走路循環" height="247"><br>8 格 · 0.8 秒 · 透明背景</td>
   </tr>
 </table>
 
 - [連續循環：走路](examples/right-profile-walk/README.md)
 - [非連續循環：攻擊](examples/right-profile-attack/README.md)
 - [不可循環：死亡](examples/right-profile-death/README.md)
+- [揮劍：保留實體武器並移除附帶特效](examples/right-profile-sword/README.md)
+
+![Per-frame processing](docs/images/pipeline-overview.png)
 
 從自然站立參考、固定演出版面、灰底影片到透明影格表，逐階段展示實際成果與素材重用方式。
 
@@ -54,7 +57,7 @@ Skill 不隨附模型、節點、FFmpeg 或 ffprobe。環境與套件檢查交�
 
 ### 圖片工作流
 
-需能輸入圖片與編輯提示詞，保存結果，並支援自然站立參考生成及真正的透明 PNG 去背。整張影格表去背時，需保持輸入的尺寸、格子位置與角色尺度。圖片輸入有尺寸倍數限制時，首次設定一併記錄。
+需能輸入圖片與編輯提示詞、保存 PNG，並支援自然站立參考生成及逐張 Refine。去背透過編輯提示詞與 Refine 同時完成，不要求專用去背節點；首次依 [環境與工作流對接](references/setup.md) 實測真正透明背景、尺寸及角色內容保留。圖片輸入的尺寸倍數限制一併記錄。
 
 本專案實測使用 **MiniMax H3** 生成影片、**Qwen Image 2.1** 處理圖片。這是可參考的搭配；Skill 透過節點對應接入工作流，不綁定這些模型。模型權重、節點與 API 工作流由使用者準備，安裝 Skill 不會一併安裝它們。
 
@@ -75,9 +78,13 @@ Skill 不隨附模型、節點、FFmpeg 或 ffprobe。環境與套件檢查交�
 
 圖片與影片由本機 ComfyUI 執行。提示詞準備、對話與視覺檢視仍會使用 Codex 額度。
 
+除非明確指定，影片提示詞不要求固定動作次數。需要引導附帶效果時，採用通用標準句「動作作用處出現一條纖細、淡灰、半透明的半弧線，沿出力方向向外移動，隨即消失」，優先保持角色、武器與配件的完整輪廓及細節可見；效果可以在後段清理，但被強光或不透明效果完全取代的部位不保證能重建。詳見 [影片生成](references/generation.md)。
+
+後段逐張 Refine、去特效與去背後，以 `--alpha-cutoff 8` 清除極低 Alpha 殘值，再共同裁切及拼表；其餘 PNG Alpha 保留漸層，可調整門檻或設為 0 停用。交付前會對照來源檢查細髮、武器尖端與握持關係。詳見 [影格表與預覽](references/spritesheet.md)。
+
 ## 使用已有影片
 
-提供影片並描述要保留的動作區間、播放時間與尺寸需求，即可接續選幀、共同裁切、拼接、去背及 GIF 製作。
+提供影片並描述要保留的動作區間、播放時間與尺寸需求，即可獨立執行後段：選幀、第一次共同裁切、逐張 Refine 與去特效及去背、Alpha 清理、第二次共同裁切、拼表及 GIF 製作。
 
 適用的影片應具備：
 

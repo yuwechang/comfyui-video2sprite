@@ -170,14 +170,17 @@ def prepare(video, output, max_side, count, start, end, seconds, loop, tolerance
     original_size = list(frames[0].size)
     frames = scale_frames(frames, scale)
     frames, crop_info = crop_frames(frames, max_side, tolerance)
-    sheet, columns, rows = pack(frames, crop_info['background_rgb'])
-    target = folder / 'input-sheet.png'
-    sheet.save(target)
+    inputs = []
+    for i, frame in enumerate(frames):
+        target = folder / 'cropped' / f'{i:03d}.png'
+        target.parent.mkdir(parents=True, exist_ok=True)
+        frame.save(target)
+        inputs.append(str(target.resolve()))
     width, height = frames[0].size
     return {'frames': count, 'cell_width': width, 'cell_height': height,
-            'columns': columns, 'rows': rows, 'order': 'left-to-right, top-to-bottom',
+            'order': 'left-to-right, top-to-bottom',
             'sample_indices': indices, 'duration_ms': sum(timings(seconds, count)),
-            'requested_seconds': seconds, 'loop': loop, 'input_sheet': str(target.resolve()),
+            'requested_seconds': seconds, 'loop': loop, 'cropped_frames': inputs,
             'original_frame_size': original_size, 'frame_scale': scale,
             'motion_type': motion_type, 'automatic_selection': automatic, **crop_info}
 

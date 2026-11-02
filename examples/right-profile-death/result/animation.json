@@ -2,8 +2,6 @@
   "frames": 12,
   "cell_width": 303,
   "cell_height": 249,
-  "columns": 6,
-  "rows": 2,
   "order": "left-to-right, top-to-bottom",
   "sample_indices": [
     86,
@@ -22,7 +20,20 @@
   "duration_ms": 1200,
   "requested_seconds": 1.2,
   "loop": false,
-  "input_sheet": "../images/spritesheet-before-removal.png",
+  "cropped_frames": [
+    "../images/cropped/000.png",
+    "../images/cropped/001.png",
+    "../images/cropped/002.png",
+    "../images/cropped/003.png",
+    "../images/cropped/004.png",
+    "../images/cropped/005.png",
+    "../images/cropped/006.png",
+    "../images/cropped/007.png",
+    "../images/cropped/008.png",
+    "../images/cropped/009.png",
+    "../images/cropped/010.png",
+    "../images/cropped/011.png"
+  ],
   "original_frame_size": [
     1152,
     896
@@ -226,10 +237,308 @@
     303,
     248
   ],
-  "image_input_padding": [
-    6,
-    14
+  "first_crop": {
+    "crop_box": [
+      110,
+      157,
+      413,
+      405
+    ],
+    "source_size": [
+      523,
+      407
+    ],
+    "source_content_boxes": [
+      [
+        193,
+        157,
+        306,
+        396
+      ],
+      [
+        193,
+        160,
+        304,
+        396
+      ],
+      [
+        191,
+        165,
+        302,
+        396
+      ],
+      [
+        178,
+        179,
+        306,
+        388
+      ],
+      [
+        164,
+        216,
+        313,
+        392
+      ],
+      [
+        175,
+        211,
+        305,
+        391
+      ],
+      [
+        184,
+        211,
+        299,
+        391
+      ],
+      [
+        188,
+        227,
+        302,
+        392
+      ],
+      [
+        185,
+        268,
+        317,
+        401
+      ],
+      [
+        153,
+        295,
+        320,
+        399
+      ],
+      [
+        122,
+        328,
+        319,
+        405
+      ],
+      [
+        110,
+        333,
+        318,
+        404
+      ]
+    ],
+    "bottom_padding": 1
+  },
+  "refinement": [
+    {
+      "source_frame_index": 86,
+      "input": "../images/workflow-input/000.png",
+      "refined": "../images/refined/000.png",
+      "padding": [
+        17,
+        7
+      ]
+    },
+    {
+      "source_frame_index": 91,
+      "input": "../images/workflow-input/001.png",
+      "refined": "../images/refined/001.png",
+      "padding": [
+        17,
+        7
+      ]
+    },
+    {
+      "source_frame_index": 95,
+      "input": "../images/workflow-input/002.png",
+      "refined": "../images/refined/002.png",
+      "padding": [
+        17,
+        7
+      ]
+    },
+    {
+      "source_frame_index": 100,
+      "input": "../images/workflow-input/003.png",
+      "refined": "../images/refined/003.png",
+      "padding": [
+        17,
+        7
+      ]
+    },
+    {
+      "source_frame_index": 104,
+      "input": "../images/workflow-input/004.png",
+      "refined": "../images/refined/004.png",
+      "padding": [
+        17,
+        7
+      ]
+    },
+    {
+      "source_frame_index": 109,
+      "input": "../images/workflow-input/005.png",
+      "refined": "../images/refined/005.png",
+      "padding": [
+        17,
+        7
+      ]
+    },
+    {
+      "source_frame_index": 113,
+      "input": "../images/workflow-input/006.png",
+      "refined": "../images/refined/006.png",
+      "padding": [
+        17,
+        7
+      ]
+    },
+    {
+      "source_frame_index": 118,
+      "input": "../images/workflow-input/007.png",
+      "refined": "../images/refined/007.png",
+      "padding": [
+        17,
+        7
+      ]
+    },
+    {
+      "source_frame_index": 122,
+      "input": "../images/workflow-input/008.png",
+      "refined": "../images/refined/008.png",
+      "padding": [
+        17,
+        7
+      ]
+    },
+    {
+      "source_frame_index": 127,
+      "input": "../images/workflow-input/009.png",
+      "refined": "../images/refined/009.png",
+      "padding": [
+        17,
+        7
+      ]
+    },
+    {
+      "source_frame_index": 131,
+      "input": "../images/workflow-input/010.png",
+      "refined": "../images/refined/010.png",
+      "padding": [
+        17,
+        7
+      ]
+    },
+    {
+      "source_frame_index": 136,
+      "input": "../images/workflow-input/011.png",
+      "refined": "../images/refined/011.png",
+      "padding": [
+        17,
+        7
+      ]
+    }
   ],
+  "final_frames": [
+    "../images/final/000.png",
+    "../images/final/001.png",
+    "../images/final/002.png",
+    "../images/final/003.png",
+    "../images/final/004.png",
+    "../images/final/005.png",
+    "../images/final/006.png",
+    "../images/final/007.png",
+    "../images/final/008.png",
+    "../images/final/009.png",
+    "../images/final/010.png",
+    "../images/final/011.png"
+  ],
+  "refined_crop": {
+    "source_size": [
+      303,
+      249
+    ],
+    "alpha_boxes": [
+      [
+        82,
+        0,
+        196,
+        240
+      ],
+      [
+        83,
+        3,
+        195,
+        240
+      ],
+      [
+        81,
+        8,
+        193,
+        240
+      ],
+      [
+        70,
+        22,
+        201,
+        231
+      ],
+      [
+        50,
+        59,
+        204,
+        235
+      ],
+      [
+        64,
+        53,
+        196,
+        234
+      ],
+      [
+        73,
+        54,
+        189,
+        234
+      ],
+      [
+        77,
+        69,
+        193,
+        235
+      ],
+      [
+        74,
+        111,
+        208,
+        245
+      ],
+      [
+        43,
+        138,
+        211,
+        244
+      ],
+      [
+        11,
+        170,
+        209,
+        248
+      ],
+      [
+        0,
+        176,
+        208,
+        247
+      ]
+    ],
+    "crop_box": [
+      0,
+      0,
+      303,
+      248
+    ],
+    "scale": 1,
+    "bottom_padding": 1,
+    "alpha_cutoff": 8
+  },
+  "columns": 6,
+  "rows": 2,
   "sheet": "spritesheet.png",
   "preview": "preview.gif",
   "verified": {

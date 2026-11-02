@@ -4,11 +4,11 @@
 
 [← 설치 및 사용 안내](../../README.ko.md)
 
-캐릭터 참고 이미지를 올리고 자연스러운 서 있는 자세를 확인한 뒤, 같은 캔버스에서 바로 동작을 생성합니다. Python이 자세 전환을 제외하고 루프를 자동 선택하여 투명 결과물을 만듭니다.
+서 있는 참조와 연출 캔버스를 재사용하여 영상을 생성합니다. 자동 선택과 공통 자르기 후 각 프레임을 Refine하며 효과와 배경을 제거하고, Alpha 정리와 재공통 자르기를 거쳐 합칩니다.
 
 <table>
   <tr><th>업로드한 참고 이미지</th><th>완성된 걷기 루프</th></tr>
-  <tr><td align="center"><img src="images/character-reference.png" alt="캐릭터 참고 이미지" height="300"></td><td align="center"><img src="result/preview.gif" alt="투명 걷기 루프" height="246"><br>8 프레임 · 0.8초 · 투명 배경</td></tr>
+  <tr><td align="center"><img src="images/character-reference.png" alt="캐릭터 참고 이미지" height="300"></td><td align="center"><img src="result/preview.gif" alt="투명 걷기 루프" height="247"><br>8 프레임 · 0.8초 · 투명 배경</td></tr>
 </table>
 
 > **요청:** 오른쪽을 바라보는 정확한 측면 걷기 루프. 캐릭터 기준 크기는 256×256.
@@ -67,59 +67,48 @@
 
 **재사용:** 동영상을 다시 생성하지 않고 구간, 샘플링, 최종 재생 시간을 변경할 수 있습니다.
 
-## 5. Python으로 루프 및 프레임 자동 선택
+원본 영상과 실제 생성 프롬프트를 유지하며 아래 결과물은 현재 후반 처리로 만들었습니다.
 
-**Codex**는 연결 지점에서 멈추지 않는 연속 루프로 판단하여 `continuous`를 지정합니다. **Python**이 비슷한 시작·끝 자세를 찾고 준비와 전환을 제외한 뒤 일정 간격으로 선택합니다.
+## 5. 자동 구간 선택 및 샘플링
 
-선택 구간은 **70~103 프레임**입니다. **104번 프레임**은 시작과 비슷한 반복 끝 자세이므로 제외합니다. 선택한 8장은 **70, 74, 78, 83, 87, 91, 96, 100**이며 번호는 0부터 시작합니다.
+`continuous` · 70–103 · 8 frames
 
-<p align="center"><img src="images/selected-frames.png" alt="자동 선택된 원본 프레임 8장" width="900"></p>
+`70, 74, 78, 83, 87, 91, 96, 100` (0-based source indices)
 
-| 동작 유형 | 구간 선택 방식 |
-| --- | --- |
-| 연속 루프 | 비슷한 시작·끝 자세, 시작부터 끝−1까지 |
-| 일시 정지가 있는 루프 | 비슷한 준비·복귀 자세, 양 끝을 포함하여 연결 지점의 멈춤 유지 |
-| 비반복 동작 | 마지막 안정 자세에서 역으로 찾아 마지막으로 적합한 시작 안정 구간 선택, 양 끝 포함 |
+![Selected source frames](images/selected-frames.png)
 
-조건에 맞는 구간이 없으면 Codex가 검토하여 지정합니다. 전체 원본 프레임과 선택 프레임은 ZIP에도 저장됩니다.
+## 6. 첫 번째 공통 자르기
 
-## 6. 공통 배율 복원, 공통 자르기, 합치기
+155×246 px / frame
 
-**Python**이 모든 선택 프레임에 같은 배율을 적용한 뒤 공통 자르기 영역을 계산합니다. 동영상 중심선을 기준으로 좌우 대칭 영역을 유지하며 프레임마다 다시 가운데 정렬하지 않습니다. 아래에 1 px을 추가하고 왼쪽에서 오른쪽, 위에서 아래 순서로 **4열×2행**으로 배치합니다.
+![First shared crop](images/first-crop-sheet.png)
 
-<p align="center"><img src="images/spritesheet-before-removal.png" alt="배경 제거 전 공통 영역으로 잘라 합친 시트" width="620"></p>
+## 7. 프레임별 Refine 및 효과·배경 제거
 
-셀은 각각 **155×246 px**, 전체는 **620×492 px**입니다. 256×256은 캐릭터 배율 기준이며 결과 셀은 전체 동작 범위에 따라 직사각형이 될 수 있습니다.
+이미지 워크플로는 자세, 크기, 위치를 유지하며 동작 흐림을 보정하고 배경도 제거합니다. 위쪽은 첫 번째 공통 자르기, 아래쪽은 이미지 워크플로의 원본 출력입니다.
 
-[배경 제거 전 시트 다운로드](images/spritesheet-before-removal.png)
+[실제 Refine 프롬프트](prompts/refine.txt)
 
-## 7. 시트 전체 배경 제거 및 전달
+![Source and refined comparison](images/refine-comparison.png)
 
-**ComfyUI**가 시트 전체의 배경을 한 번에 제거합니다. **Python**은 크기와 투명도를 확인하고 최종 시트에서 GIF를 만든 뒤 실제 자료, 전체 및 선택 프레임, 프롬프트, 결과물을 묶습니다. **Codex**가 검토하고 대화에 결과물과 ZIP을 제공합니다.
+![Raw refined frames](images/refined-sheet-preview.png)
 
-<p align="center"><img src="images/spritesheet-preview.png" alt="체커보드 위에 표시한 투명 시트" width="620"></p>
+## 8. Alpha 정리, 두 번째 공통 자르기 및 전달
 
-체커보드는 표시용이며 원본 PNG는 실제 투명 배경입니다.
+Alpha가 8 미만인 값만 0으로 만들고 나머지 반투명 가장자리는 유지합니다. 모든 프레임을 공통 범위로 다시 자르고 하단에 투명 여백 1 px을 남깁니다. 체크무늬는 미리보기 전용입니다.
 
-<p align="center"><img src="result/preview.gif" alt="최종 걷기 루프 GIF"></p>
+![Alpha and second crop comparison](images/alpha-comparison.png)
 
-| 다운로드 | 내용 |
-| --- | --- |
-| [투명 PNG 시트](result/spritesheet.png) | 8 프레임, 4열×2행, 각 155×246 |
-| [GIF 미리보기](result/preview.gif) | 투명 배경, 0.8초 루프 |
-| [전체 자료 ZIP](walk-complete.zip) | 약 24 MB: 원본, 서 있는 참고, 입력 이미지, 원본 동영상, 전체 107 프레임, 선택 8 프레임, 프롬프트, 결과물 |
-| [결과 사양 JSON](result/animation.json) | 자동 구간 선택, 샘플링, 공통 자르기, 재생 시간 |
-| [실제 배경 제거 프롬프트](prompts/background-removal.txt) | 시트 전체 처리에 사용한 문구 |
+| 프레임 수 | 셀 크기 | 배치 | 시트 | 재생 시간 |
+| --- | --- | --- | --- | --- |
+| 8 | 155×247 | 4×2 | 620×494 | 0.8 s |
 
-## 보관하면 좋은 자료
+![Final spritesheet](images/spritesheet-preview.png)
 
-| 자료 | 재사용 방법 |
-| --- | --- |
-| 자연스럽게 서 있는 참고 이미지 | 공통 캐릭터 배율, 위치, 외형 |
-| 서 있는 캔버스와 프롬프트 | ComfyUI에서 다른 동작과 설정 시험 |
-| 원본 동영상과 전체 프레임 | 구간, 샘플링, 재생 시간 변경 |
-| 최종 투명 시트 | 게임 엔진 가져오기 또는 다른 미리보기 제작 |
+![Animation](result/preview.gif)
 
-[설치 및 사용 시작 →](../../README.ko.md)
+[PNG](result/spritesheet.png) · [GIF](result/preview.gif) · [JSON](result/animation.json) · [전체 소재 ZIP](walk-complete.zip)
 
-[연속 루프: 걷기](../right-profile-walk/README.ko.md) · [일시 정지가 있는 루프: 공격](../right-profile-attack/README.ko.md) · [비반복 동작: 쓰러지기](../right-profile-death/README.ko.md)
+[Workflow / validation](../../references/spritesheet.md)
+
+ZIP에는 원본 영상, 모든 원본 프레임, 선택 프레임, 자른 프레임, 워크플로 입력, 원본 Refine 출력, 최종 프레임, 프롬프트, PNG／GIF／JSON이 포함됩니다.

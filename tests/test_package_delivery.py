@@ -55,6 +55,28 @@ class DeliveryTests(unittest.TestCase):
             self.assertTrue((root/'source/002.png').exists())
             self.assertFalse(list(root.glob('delivery-*')))
 
+    def test_refinement_stages_have_portable_paths(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            self.fixture(root)
+            report = json.loads((root/'animation.json').read_text())
+            report.update(cropped_frames=['source/000.png', 'source/002.png'],
+                          final_frames=['source/000.png', 'source/002.png'],
+                          refinement=[{'input': 'source/000.png', 'refined': 'source/002.png',
+                                       'source_frame_index': index, 'padding': [0, 0]}
+                                      for index in [0, 2]])
+            (root/'animation.json').write_text(json.dumps(report))
+            result = delivery.package(root/'package.json', root/'bundle.zip')
+            with zipfile.ZipFile(result['zip']) as archive:
+                portable = json.loads(archive.read('result/animation.json'))
+                for field in ('cropped_frames', 'final_frames'):
+                    for path in portable[field]:
+                        self.assertIn(path.removeprefix('../'), archive.namelist())
+                for record in portable['refinement']:
+                    for field in ('input', 'refined'):
+                        self.assertIn(record[field].removeprefix('../'), archive.namelist())
+                self.assertNotIn(str(root), json.dumps(portable))
+
     def test_missing_input_fails_before_export(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder)

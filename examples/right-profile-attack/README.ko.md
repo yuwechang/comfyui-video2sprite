@@ -4,9 +4,9 @@
 
 [← 설치 및 사용 안내](../../README.ko.md)
 
-자연스럽게 서 있는 참고 이미지와 회색조 동작 캔버스를 재사용하여 바로 동작을 생성합니다. Python이 자세 전환을 제외하고 구간을 자동 선택한 뒤 일정 간격 추출, 공통 자르기, 합치기, 배경 제거 및 전달을 진행합니다.
+서 있는 참조와 연출 캔버스를 재사용하여 영상을 생성합니다. 자동 선택과 공통 자르기 후 각 프레임을 Refine하며 효과와 배경을 제거하고, Alpha 정리와 재공통 자르기를 거쳐 합칩니다.
 
-<table><tr><th>캐릭터 참고 이미지</th><th>투명 결과물</th></tr><tr><td align="center"><img src="images/character-reference.png" alt="reference" height="300"></td><td align="center"><img src="result/preview.gif" alt="preview" height="249"></td></tr></table>
+<table><tr><th>캐릭터 참고 이미지</th><th>투명 결과물</th></tr><tr><td align="center"><img src="images/character-reference.png" alt="reference" height="300"></td><td align="center"><img src="result/preview.gif" alt="preview" height="245"></td></tr></table>
 
 > 오른쪽으로 펀치한 뒤 전투 자세로 돌아오는 동작. 캐릭터 기준 크기 256×256.
 
@@ -58,46 +58,48 @@
 
 [MP4 보기／다운로드](video/source.mp4) · [동영상 프롬프트](prompts/video.txt)
 
-## 5. 구간 및 프레임 자동 선택
+원본 영상과 실제 생성 프롬프트를 유지하며 아래 결과물은 현재 후반 처리로 만들었습니다.
 
-**Codex**는 `paused`를 지정합니다. 비슷한 시작 자세로 돌아오며 반복 연결 지점에서 멈출 수 있습니다. **Python**이 비슷한 준비·복귀 안정 자세를 찾아 양 끝을 포함합니다.
+## 5. 자동 구간 선택 및 샘플링
 
-자동 구간은 **48~94 프레임**이며 양 끝을 포함합니다. 일정 간격으로 선택한 **12장**: **48, 52, 56, 61, 65, 69, 73, 77, 81, 86, 90, 94**. 번호는 0부터 시작합니다.
+`paused` · 48–94 · 12 frames
 
-<p align="center"><img src="images/selected-frames.png" alt="selected-frames" width="900"></p>
+`48, 52, 56, 61, 65, 69, 73, 77, 81, 86, 90, 94` (0-based source indices)
 
-## 6. 공통 배율 복원, 자르기 및 합치기
+![Selected source frames](images/selected-frames.png)
 
-**Python**이 모든 선택 프레임에 같은 복원 배율을 적용하고 동영상 중심선 기준 좌우 대칭의 공통 자르기 영역을 계산합니다. 개별 프레임의 가운데 정렬, 하단 정렬, 크기 변경은 하지 않습니다. 아래 1 px을 추가하고 왼쪽에서 오른쪽, 위에서 아래 순서로 **6열×2행**으로 배치합니다.
+## 6. 첫 번째 공통 자르기
 
-<p align="center"><img src="images/spritesheet-before-removal.png" alt="spritesheet-before-removal" width="900"></p>
+217×245 px / frame
 
-각 셀 **217×245 px**, 전체 **1302×490 px**입니다. 256×256은 캐릭터 배율 기준이며 전체 동작과 상대적 이동을 보존합니다.
+![First shared crop](images/first-crop-sheet.png)
 
-[배경 제거 전 시트](images/spritesheet-before-removal.png)
+## 7. 프레임별 Refine 및 효과·배경 제거
 
-## 7. 전체 배경 제거 및 전달
+이미지 워크플로는 자세, 크기, 위치를 유지하며 동작 흐림을 보정하고 배경도 제거합니다. 위쪽은 첫 번째 공통 자르기, 아래쪽은 이미지 워크플로의 원본 출력입니다.
 
-**ComfyUI**가 시트 전체 배경을 한 번에 제거합니다. **Python**이 크기, 투명도, GIF 시간을 검증하고 자료를 묶습니다. **Codex**가 검토하여 표시합니다. 체커보드는 표시용이며 원본 PNG는 실제 투명 배경입니다.
+[실제 Refine 프롬프트](prompts/refine.txt)
 
-<p align="center"><img src="images/spritesheet-preview.png" alt="spritesheet-preview" width="900"></p>
+![Source and refined comparison](images/refine-comparison.png)
 
-<p align="center"><img src="result/preview.gif" alt="preview" width="217"></p>
+![Raw refined frames](images/refined-sheet-preview.png)
 
-GIF는 이 공격 구간을 **0.8초**로 반복합니다. 시작과 끝 자세가 비슷하며 연결 지점의 멈춤을 유지합니다.
+## 8. Alpha 정리, 두 번째 공통 자르기 및 전달
 
-| 다운로드 | 내용 |
-| --- | --- |
-| [투명 PNG 시트](result/spritesheet.png) | 12 · 6×2 · 217×245 px |
-| [GIF 미리보기](result/preview.gif) | 0.8 s |
-| [전체 자료 ZIP](attack-complete.zip) | 약 27 MB. 원본, 서 있는 참고, 입력 이미지, 원본 동영상, 전체 107 프레임, 선택 12장, 실제 프롬프트 및 결과물. |
-| [결과 JSON](result/animation.json) | 자동 구간 선택, 샘플링, 자르기, 재생 시간 |
-| [배경 제거 프롬프트](prompts/background-removal.txt) | 시트 전체 처리에 사용한 문구 |
+Alpha가 8 미만인 값만 0으로 만들고 나머지 반투명 가장자리는 유지합니다. 모든 프레임을 공통 범위로 다시 자르고 하단에 투명 여백 1 px을 남깁니다. 체크무늬는 미리보기 전용입니다.
 
-## 보관하면 좋은 자료
+![Alpha and second crop comparison](images/alpha-comparison.png)
 
-- 서 있는 참고와 캔버스: 다른 동작에서도 배율, 위치, 외형 재사용.
-- 원본 동영상과 전체 프레임: 재생성 없이 구간, 수동 선택, 재생 타이밍 변경.
-- 실제 프롬프트와 입력 이미지: ComfyUI에서 시험한 뒤 동영상을 Skill로 가져와 처리.
+| 프레임 수 | 셀 크기 | 배치 | 시트 | 재생 시간 |
+| --- | --- | --- | --- | --- |
+| 12 | 217×245 | 6×2 | 1302×490 | 0.8 s |
 
-[연속 루프: 걷기](../right-profile-walk/README.ko.md) · [일시 정지가 있는 루프: 공격](../right-profile-attack/README.ko.md) · [비반복 동작: 쓰러지기](../right-profile-death/README.ko.md)
+![Final spritesheet](images/spritesheet-preview.png)
+
+![Animation](result/preview.gif)
+
+[PNG](result/spritesheet.png) · [GIF](result/preview.gif) · [JSON](result/animation.json) · [전체 소재 ZIP](attack-complete.zip)
+
+[Workflow / validation](../../references/spritesheet.md)
+
+ZIP에는 원본 영상, 모든 원본 프레임, 선택 프레임, 자른 프레임, 워크플로 입력, 원본 Refine 출력, 최종 프레임, 프롬프트, PNG／GIF／JSON이 포함됩니다.

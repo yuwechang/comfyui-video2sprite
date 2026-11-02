@@ -69,6 +69,26 @@ class SetupTests(unittest.TestCase):
                 setup.bind(root / 'api.json', root / 'map.json', 'http://localhost:8188', root / 'linked.json')
                 self.assertEqual(json.loads((root / 'linked.json').read_text())['workflow'], graph)
 
+    def test_single_image_video_requires_explicit_omission_mode(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            graph = {'1': {'class_type': 'Example', 'inputs': {'value': 1}}}
+            roles = ('image_1', 'positive_prompt', 'width', 'height', 'length', 'seed')
+            mapping = {'bindings': {role: [{'node': '1', 'input': 'value'}] for role in roles},
+                       'output_node': '1', 'generation': {'width_multiple': 32, 'height_multiple': 32,
+                       'frame_step': 17, 'frame_offset': 5, 'frame_min': 5,
+                       'length_unit': 'frames', 'fps': 24}}
+            (root/'api.json').write_text(json.dumps(graph))
+            (root/'map.json').write_text(json.dumps(mapping))
+            with self.assertRaisesRegex(ValueError, 'image_2'):
+                setup.bind(root/'api.json', root/'map.json', 'http://localhost:8188', root/'bad.json')
+            mapping['image_2_mode'] = {'optional': True, 'omit_inputs': []}
+            (root/'map.json').write_text(json.dumps(mapping))
+            schema = {'Example': {'input': {'required': {'value': ['INT', {}]}}, 'output_node': True}}
+            with patch.object(setup, 'fetch', return_value=schema):
+                setup.bind(root/'api.json', root/'map.json', 'http://localhost:8188', root/'profile.json')
+            self.assertNotIn('image_2', json.loads((root/'profile.json').read_text())['bindings'])
+
 
 if __name__ == '__main__':
     unittest.main()

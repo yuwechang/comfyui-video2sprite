@@ -10,13 +10,16 @@ Codex interprets requests, writes prompts, and reviews results. Local Python han
   <tr><th>Character showcase</th><th>Walking loop</th></tr>
   <tr>
     <td align="center"><img src="docs/images/character-showcase.png" alt="Character showcase" height="270"></td>
-    <td align="center"><img src="examples/right-profile-walk/result/preview.gif" alt="Transparent walking loop" height="246"><br>8 frames · 0.8 seconds · Transparent</td>
+    <td align="center"><img src="examples/right-profile-walk/result/preview.gif" alt="Transparent walking loop" height="247"><br>8 frames · 0.8 seconds · Transparent</td>
   </tr>
 </table>
 
 - [Continuous loop: walking](examples/right-profile-walk/README.en.md)
 - [Loop with a pause: attack](examples/right-profile-attack/README.en.md)
 - [Non-looping action: death](examples/right-profile-death/README.en.md)
+- [Sword attack: preserve the physical weapon and remove incidental effects](examples/right-profile-sword/README.en.md)
+
+![Per-frame processing](docs/images/pipeline-overview.png)
 
 Follow the actual results from the standing reference and performance canvas through the gray-background video to the transparent sheet, including assets you can reuse.
 
@@ -50,7 +53,7 @@ FPS, dimension multiples, valid frame counts, and ranges are also recorded. The 
 
 ### Image workflow
 
-The workflow must accept an image and editing prompt, save results, generate natural standing references, and remove backgrounds to produce genuinely transparent PNGs. Whole-sheet background removal must preserve dimensions, cell positions, and character scale. Image dimension multiples are recorded during setup.
+The workflow must accept an image and editing prompt, save PNGs, and support standing-reference generation and per-frame refinement. Background removal is requested in the same editing prompt as refinement; a dedicated removal node is not required. During [initial setup](references/setup.md), verify actual transparency, unchanged dimensions and preserved character content. Record any input dimension multiples.
 
 This project's example uses **MiniMax H3** for video and **Qwen Image 2.1** for images. This is a tested combination, not a model restriction: the Skill connects through node mappings. You provide model weights, nodes, and API workflows; installing the Skill does not install them.
 
@@ -71,9 +74,13 @@ Frame count starts at 8 and is adjusted to the action. Each action receives its 
 
 Image and video processing run in local ComfyUI. Prompt preparation, conversation, and visual review still use Codex usage allowance.
 
+Unless requested, video prompts do not prescribe repetition counts. When guiding incidental effects, use the standard effect sentence: “A thin, light-gray, semi-transparent semicircular line appears at the action point, moves outward along the direction of force, and promptly disappears,” while keeping the complete character, equipment, weapon tips and surface detail readable. Content fully replaced by bright or opaque effects cannot be reliably reconstructed. See [video generation](references/generation.md).
+
+After per-frame refinement, effect removal and background removal, `--alpha-cutoff 8` clears tiny alpha residues before the second shared crop and packing. Other PNG alpha values retain their gradients; the cutoff is adjustable, and 0 disables cleanup. Compare fine hair, weapon tips and grip connections against the source before delivery. See [sheet processing](references/spritesheet.md).
+
 ## Use an existing video
 
-Provide a video and describe the action interval, playback duration, and size requirements to continue with selection, shared cropping, packing, background removal, and GIF creation.
+Provide a video, action interval, playback duration and size requirements to run the independent finishing stage: selection, first shared crop, per-frame refinement and effect/background removal, alpha cleanup, second shared crop, packing and GIF creation.
 
 Suitable videos have:
 

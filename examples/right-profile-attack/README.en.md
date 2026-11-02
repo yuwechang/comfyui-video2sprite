@@ -4,9 +4,9 @@
 
 [← Installation and usage](../../README.en.md)
 
-Reuse a natural standing reference and grayscale performance canvas to generate the action directly. Python excludes posture transitions, selects an interval, samples evenly, then crops, packs, removes the background, and delivers the results.
+Reuse the standing reference and performance canvas to generate a video. After selection and a shared crop, refine each frame and remove effects and background, then clean alpha, crop jointly again and pack the results.
 
-<table><tr><th>Character reference</th><th>Transparent result</th></tr><tr><td align="center"><img src="images/character-reference.png" alt="reference" height="300"></td><td align="center"><img src="result/preview.gif" alt="preview" height="249"></td></tr></table>
+<table><tr><th>Character reference</th><th>Transparent result</th></tr><tr><td align="center"><img src="images/character-reference.png" alt="reference" height="300"></td><td align="center"><img src="result/preview.gif" alt="preview" height="245"></td></tr></table>
 
 > A right-facing punch attack that returns to a fighting guard, with a 256×256 character baseline.
 
@@ -58,46 +58,48 @@ Source: **1152×896, 24 FPS, 107 frames, approximately 4.46 seconds**. The GIF i
 
 [Watch/download MP4](video/source.mp4) · [Actual video prompt](prompts/video.txt)
 
-## 5. Automatically select an interval and frames
+The source video and its actual generation prompts are retained. The results below were processed with the current backend.
 
-**Codex** specifies `paused`: the action returns to a similar guard, with a pause allowed at the repeat boundary. **Python** selects similar stable preparation/recovery poses and includes both endpoints.
+## 5. Automatic selection and sampling
 
-Automatic interval: **frames 48–94**, including both endpoints. **12** evenly sampled frames: **48, 52, 56, 61, 65, 69, 73, 77, 81, 86, 90, 94**. Indices start at zero.
+`paused` · 48–94 · 12 frames
 
-<p align="center"><img src="images/selected-frames.png" alt="selected-frames" width="900"></p>
+`48, 52, 56, 61, 65, 69, 73, 77, 81, 86, 90, 94` (0-based source indices)
 
-## 6. Restore scale, crop jointly, and pack
+![Selected source frames](images/selected-frames.png)
 
-**Python** applies one restoration scale to all selected frames and calculates a common crop symmetric about the video centerline. It does not recenter, bottom-align, or rescale individual frames. A 1 px bottom margin is added, and frames are packed left to right, top to bottom in **6 columns × 2 rows**.
+## 6. First shared crop
 
-<p align="center"><img src="images/spritesheet-before-removal.png" alt="spritesheet-before-removal" width="900"></p>
+217×245 px / frame
 
-Cells: **217×245 px**. Sheet: **1302×490 px**. The 256×256 baseline defines character scale; the crop encloses the whole action and preserves relative movement.
+![First shared crop](images/first-crop-sheet.png)
 
-[Download sheet before background removal](images/spritesheet-before-removal.png)
+## 7. Per-frame Refine, effect and background removal
 
-## 7. Remove the background and deliver
+The image workflow preserves pose, scale and position while repairing motion blur and removing the background. Top: first shared crop. Bottom: raw image-workflow output.
 
-**ComfyUI** removes the background from the entire sheet once. **Python** verifies dimensions, transparency, and GIF duration, and packages the assets. **Codex** reviews and displays the result. The checkerboard is for display only; the original PNG is transparent.
+[Actual Refine prompt](prompts/refine.txt)
 
-<p align="center"><img src="images/spritesheet-preview.png" alt="spritesheet-preview" width="900"></p>
+![Source and refined comparison](images/refine-comparison.png)
 
-<p align="center"><img src="result/preview.gif" alt="preview" width="217"></p>
+![Raw refined frames](images/refined-sheet-preview.png)
 
-The GIF repeats this attack interval in **0.8 seconds**. Its starting and ending guards are similar, retaining a pause at the boundary.
+## 8. Alpha cleanup, second shared crop and delivery
 
-| Download | Contents |
-| --- | --- |
-| [Transparent PNG sheet](result/spritesheet.png) | 12 · 6×2 · 217×245 px |
-| [GIF preview](result/preview.gif) | 0.8 s |
-| [Complete asset ZIP](attack-complete.zip) | About 27 MB: original image, standing reference, input canvas, source video, all 107 frames, 12 selected frames, actual prompts, and results. |
-| [Output JSON](result/animation.json) | Automatic interval, sampling, crop, and playback timing |
-| [Background-removal prompt](prompts/background-removal.txt) | Actual whole-sheet removal prompt |
+Alpha values below 8 become 0; other translucent edges remain. All frames share a second crop with 1 px of transparent bottom padding. Checkerboards are preview backgrounds only.
 
-## Assets worth keeping
+![Alpha and second crop comparison](images/alpha-comparison.png)
 
-- Standing reference and canvas: reuse character scale, position, and appearance for other actions.
-- Source video and all frames: reselect intervals, choose frames manually, or change timing without generating again.
-- Actual prompts and input image: experiment in ComfyUI and return a video to the Skill for processing.
+| Frames | Cell | Grid | Sheet | Duration |
+| --- | --- | --- | --- | --- |
+| 12 | 217×245 | 6×2 | 1302×490 | 0.8 s |
 
-[Continuous loop: walking](../right-profile-walk/README.en.md) · [Loop with a pause: attack](../right-profile-attack/README.en.md) · [Non-looping action: death](../right-profile-death/README.en.md)
+![Final spritesheet](images/spritesheet-preview.png)
+
+![Animation](result/preview.gif)
+
+[PNG](result/spritesheet.png) · [GIF](result/preview.gif) · [JSON](result/animation.json) · [Complete asset bundle](attack-complete.zip)
+
+[Workflow / validation](../../references/spritesheet.md)
+
+ZIP: source video, all source frames, selected frames, cropped frames, workflow inputs, raw refined frames, final frames, prompts, PNG / GIF / JSON.

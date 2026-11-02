@@ -4,11 +4,11 @@
 
 [← Installation and usage](../../README.en.md)
 
-Upload a character reference, approve the natural standing pose, and generate the action directly from the standing canvas. Python excludes the posture transition, selects a loop, and produces transparent deliverables.
+Reuse the standing reference and performance canvas to generate a video. After selection and a shared crop, refine each frame and remove effects and background, then clean alpha, crop jointly again and pack the results.
 
 <table>
   <tr><th>Uploaded reference</th><th>Finished walking loop</th></tr>
-  <tr><td align="center"><img src="images/character-reference.png" alt="Character reference" height="300"></td><td align="center"><img src="result/preview.gif" alt="Transparent walking loop" height="246"><br>8 frames · 0.8 seconds · Transparent</td></tr>
+  <tr><td align="center"><img src="images/character-reference.png" alt="Character reference" height="300"></td><td align="center"><img src="result/preview.gif" alt="Transparent walking loop" height="247"><br>8 frames · 0.8 seconds · Transparent</td></tr>
 </table>
 
 > **Request:** A walking loop facing right in a strict side view, with a 256×256 character baseline.
@@ -67,59 +67,48 @@ Source: **1152×896, 24 FPS, 107 frames, approximately 4.46 seconds**. This GIF 
 
 **Reusable:** Reselect intervals or frames and change delivery playback timing without generating another video.
 
-## 5. Automatically select a loop and frames
+The source video and its actual generation prompts are retained. The results below were processed with the current backend.
 
-**Codex** classifies the action as `continuous`: there is no pause at the loop boundary. **Python** finds similar start/end poses, excludes preparation and transitions, and samples evenly.
+## 5. Automatic selection and sampling
 
-Selected interval: **frames 70–103**. Frame **104** is the matching tail pose and is omitted. The 8 selected frames are **70, 74, 78, 83, 87, 91, 96, 100**, numbered from zero.
+`continuous` · 70–103 · 8 frames
 
-<p align="center"><img src="images/selected-frames.png" alt="The eight automatically selected source frames" width="900"></p>
+`70, 74, 78, 83, 87, 91, 96, 100` (0-based source indices)
 
-| Action type | Selection |
-| --- | --- |
-| Continuous loop | Similar start/end; start through end−1 |
-| Loop with a pause | Similar preparation/recovery poses; include both endpoints to retain the pause |
-| Non-looping | Work backward from the final stable pose to the last eligible starting stable interval; include both endpoints |
+![Selected source frames](images/selected-frames.png)
 
-If no qualifying interval is found, Codex reviews and specifies one. All source frames and selected frames are also stored in the ZIP.
+## 6. First shared crop
 
-## 6. Restore scale, crop jointly, and pack
+155×246 px / frame
 
-**Python** applies one scale to all selected frames, then calculates a shared crop. The crop is horizontally symmetric about the video centerline, preserving movement without recentering each frame. It adds 1 px at the bottom and packs **4 columns × 2 rows**, left to right, top to bottom.
+![First shared crop](images/first-crop-sheet.png)
 
-<p align="center"><img src="images/spritesheet-before-removal.png" alt="Shared crop packed before background removal" width="620"></p>
+## 7. Per-frame Refine, effect and background removal
 
-Cells: **155×246 px**. Sheet: **620×492 px**. The 256×256 baseline defines character scale; the delivery cells enclose the full action and can be rectangular.
+The image workflow preserves pose, scale and position while repairing motion blur and removing the background. Top: first shared crop. Bottom: raw image-workflow output.
 
-[Download sheet before background removal](images/spritesheet-before-removal.png)
+[Actual Refine prompt](prompts/refine.txt)
 
-## 7. Remove the background and deliver
+![Source and refined comparison](images/refine-comparison.png)
 
-**ComfyUI** removes the background from the whole sheet once. **Python** verifies size and transparency, creates the GIF from the final sheet, and packages actual assets, all frames, selected frames, prompts, and outputs. **Codex** reviews and displays the deliverables with a ZIP link.
+![Raw refined frames](images/refined-sheet-preview.png)
 
-<p align="center"><img src="images/spritesheet-preview.png" alt="Transparent sheet displayed over a checkerboard" width="620"></p>
+## 8. Alpha cleanup, second shared crop and delivery
 
-The checkerboard is for display only; the original PNG is transparent.
+Alpha values below 8 become 0; other translucent edges remain. All frames share a second crop with 1 px of transparent bottom padding. Checkerboards are preview backgrounds only.
 
-<p align="center"><img src="result/preview.gif" alt="Final walking loop GIF"></p>
+![Alpha and second crop comparison](images/alpha-comparison.png)
 
-| Download | Contents |
-| --- | --- |
-| [Transparent PNG sheet](result/spritesheet.png) | 8 frames, 4×2, each 155×246 |
-| [GIF preview](result/preview.gif) | Transparent, 0.8-second loop |
-| [Complete ZIP](walk-complete.zip) | About 24 MB: original, standing reference, input canvas, source video, all 107 frames, 8 selected frames, prompts, outputs |
-| [Output JSON](result/animation.json) | Interval selection, sampling, crop, playback timing |
-| [Background-removal prompt](prompts/background-removal.txt) | Actual prompt used for the whole sheet |
+| Frames | Cell | Grid | Sheet | Duration |
+| --- | --- | --- | --- | --- |
+| 8 | 155×247 | 4×2 | 620×494 | 0.8 s |
 
-## Assets worth keeping
+![Final spritesheet](images/spritesheet-preview.png)
 
-| Asset | Reuse |
-| --- | --- |
-| Standing reference | Shared character scale, position, and appearance |
-| Standing canvas and prompts | Other actions or settings in ComfyUI |
-| Source video and all frames | Different intervals, samples, and playback timing |
-| Transparent sheet | Import into a game engine or create other previews |
+![Animation](result/preview.gif)
 
-[Install and start →](../../README.en.md)
+[PNG](result/spritesheet.png) · [GIF](result/preview.gif) · [JSON](result/animation.json) · [Complete asset bundle](walk-complete.zip)
 
-[Continuous loop: walking](../right-profile-walk/README.en.md) · [Loop with a pause: attack](../right-profile-attack/README.en.md) · [Non-looping action: death](../right-profile-death/README.en.md)
+[Workflow / validation](../../references/spritesheet.md)
+
+ZIP: source video, all source frames, selected frames, cropped frames, workflow inputs, raw refined frames, final frames, prompts, PNG / GIF / JSON.

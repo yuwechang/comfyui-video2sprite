@@ -4,11 +4,11 @@
 
 [← 返回安装与使用说明](../../README.zh-CN.md)
 
-上传角色参考图，确认自然站姿，直接用同一站立画布生成动作视频。Python 排除姿态过渡，自动选择循环并制作透明成品。
+沿用自然站立参考与演出版面生成动作视频；自动选段及共同裁切后，逐帧 Refine、去特效并去背，再清理 Alpha、共同裁切及合并交付。
 
 <table>
   <tr><th>上传的角色参考</th><th>行走循环成品</th></tr>
-  <tr><td align="center"><img src="images/character-reference.png" alt="角色宣传图" height="300"></td><td align="center"><img src="result/preview.gif" alt="透明行走循环" height="246"><br>8 帧 · 0.8 秒 · 透明背景</td></tr>
+  <tr><td align="center"><img src="images/character-reference.png" alt="角色宣传图" height="300"></td><td align="center"><img src="result/preview.gif" alt="透明行走循环" height="247"><br>8 帧 · 0.8 秒 · 透明背景</td></tr>
 </table>
 
 > **本次需求：** 面朝右、正侧视角的行走循环动画，角色基准大小为 256×256。
@@ -67,59 +67,48 @@
 
 **可以复用：** 重新选段、采样或调整交付播放时间，不必再次生成视频。
 
-## 5. Python 自动寻找循环并选帧
+来源视频与实际生成提示词保留原样；以下成品以当前后段流程重新处理。
 
-**Codex**判断这是接点不停顿的“连续循环”，指定 `continuous`；**Python**寻找近似首尾姿势，排除准备与过渡，再等距采样。
+## 5. 自动选段与采样
 
-本次自动选择 **70～103 帧**。第 **104 帧**是近似的重复尾姿势，因此不重复收取。8 张选中帧为 **70、74、78、83、87、91、96、100**，编号从 0 开始。
+`continuous` · 70–103 · 8 frames
 
-<p align="center"><img src="images/selected-frames.png" alt="自动选择的八张源帧" width="900"></p>
+`70, 74, 78, 83, 87, 91, 96, 100` (0-based source indices)
 
-| 动作类型 | 程序选段方式 |
-| --- | --- |
-| 连续循环 | 近似首尾，头至尾−1 |
-| 非连续循环 | 近似起手与恢复姿态，头至尾，保留接点停顿 |
-| 不可循环 | 从末端稳定姿态回找最后的起始稳定段，头至尾 |
+![Selected source frames](images/selected-frames.png)
 
-找不到符合条件的区间时，才由 Codex 检查并指定区间。全部源帧与选中帧另存于 ZIP。
+## 6. 第一次共同裁切
 
-## 6. 统一缩回、共同裁剪与拼接
+155×246 px / frame
 
-**Python**为所有选中帧应用同一倍率，再计算共用裁剪框；以视频中线左右对称保留动作范围，不逐帧重新居中。底部补 1 px，按从左到右、从上到下排列为 **4 列×2 行**。
+![First shared crop](images/first-crop-sheet.png)
 
-<p align="center"><img src="images/spritesheet-before-removal.png" alt="共同裁剪后尚未去背景的图集" width="620"></p>
+## 7. 逐帧 Refine、去特效与去背
 
-每格 **155×246 px**，整张 **620×492 px**。256×256 是角色尺度基准，交付格子根据完整动作范围裁剪，可以是长方形。
+逐帧图片工作流保留姿势、尺度与位置，修复动态模糊并同时清理背景。上排为第一次共同裁切，下排为图片工作流的原始输出。
 
-[下载尚未去背景的图集](images/spritesheet-before-removal.png)
+[实际 Refine 提示词](prompts/refine.txt)
 
-## 7. 整张去背景与交付
+![Source and refined comparison](images/refine-comparison.png)
 
-**ComfyUI**对整张图集去背景；**Python**验证尺寸与透明度，从最终图集制作 GIF，并打包实际素材、全部与选中帧、提示词和成品。**Codex**检查后，在对话中展示成品并附上 ZIP。
+![Raw refined frames](images/refined-sheet-preview.png)
 
-<p align="center"><img src="images/spritesheet-preview.png" alt="棋盘底展示透明精灵图集" width="620"></p>
+## 8. Alpha 清理、再次共同裁切与交付
 
-棋盘格仅用于展示；原 PNG 为真正透明背景。
+仅将 Alpha 小于 8 的值清为 0，保留其余半透明边缘；依全部帧共同裁切，底部保留 1 px 透明留白。棋盘格仅供预览。
 
-<p align="center"><img src="result/preview.gif" alt="最终行走循环 GIF"></p>
+![Alpha and second crop comparison](images/alpha-comparison.png)
 
-| 下载 | 内容 |
-| --- | --- |
-| [透明精灵图集 PNG](result/spritesheet.png) | 8 帧，4 列×2 行，每格 155×246 |
-| [预览 GIF](result/preview.gif) | 透明背景，0.8 秒循环 |
-| [完整素材 ZIP](walk-complete.zip) | 约 24 MB，含原图、站立参考、视频输入、源视频、107 张全部帧、8 张选中帧、提示词与成品 |
-| [成品规格 JSON](result/animation.json) | 自动选段、采样、共同裁剪与播放时间 |
-| [实际去背景提示词](prompts/background-removal.txt) | 整张去背景时使用的文字 |
+| 帧数 | 单帧尺寸 | 排列 | 帧表 | 播放时间 |
+| --- | --- | --- | --- | --- |
+| 8 | 155×247 | 4×2 | 620×494 | 0.8 s |
 
-## 值得保存的素材
+![Final spritesheet](images/spritesheet-preview.png)
 
-| 素材 | 复用方式 |
-| --- | --- |
-| 自然站立参考 | 同一角色的尺度、站位与外观参考 |
-| 站立画布与提示词 | 在 ComfyUI 生成其他动作或重试设置 |
-| 源视频与全部帧 | 重新选段、采样及设置播放时间 |
-| 最终透明精灵图集 | 导入游戏引擎或制作其他预览 |
+![Animation](result/preview.gif)
 
-[开始安装与使用 →](../../README.zh-CN.md)
+[PNG](result/spritesheet.png) · [GIF](result/preview.gif) · [JSON](result/animation.json) · [完整素材包](walk-complete.zip)
 
-[连续循环：行走](../right-profile-walk/README.zh-CN.md) · [非连续循环：攻击](../right-profile-attack/README.zh-CN.md) · [不可循环：死亡](../right-profile-death/README.zh-CN.md)
+[Workflow / validation](../../references/spritesheet.md)
+
+完整 ZIP 包含来源视频、全部来源帧、选中帧、裁切帧、工作流输入、原始 Refine 输出、最终帧、提示词，以及 PNG／GIF／JSON。

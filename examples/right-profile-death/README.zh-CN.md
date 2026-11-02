@@ -4,7 +4,7 @@
 
 [← 返回安装与使用说明](../../README.zh-CN.md)
 
-复用自然站立参考与灰阶动作画布，直接生成目标动作。Python 排除姿态过渡、自动选段和等距采样，再完成共同裁剪、整张去背景与交付。
+沿用自然站立参考与演出版面生成动作视频；自动选段及共同裁切后，逐帧 Refine、去特效并去背，再清理 Alpha、共同裁切及合并交付。
 
 <table><tr><th>角色参考图</th><th>透明成品</th></tr><tr><td align="center"><img src="images/character-reference.png" alt="reference" height="300"></td><td align="center"><img src="result/preview.gif" alt="preview" height="249"></td></tr></table>
 
@@ -58,46 +58,48 @@
 
 [观看／下载 MP4](video/source.mp4) · [实际视频提示词](prompts/video.txt)
 
-## 5. Python 自动选段与选帧
+来源视频与实际生成提示词保留原样；以下成品以当前后段流程重新处理。
 
-**Codex**指定 `once`：结束后不回到起始姿态。**Python**先找末端稳定倒地区间，再回找最后一个符合条件的起始稳定段，排除自然站立与转架势的前段。
+## 5. 自动选段与采样
 
-自动区间为 **86～136 帧**，包含头尾。等距采样 **12 帧**：**86, 91, 95, 100, 104, 109, 113, 118, 122, 127, 131, 136**。编号从 0 开始。
+`once` · 86–136 · 12 frames
 
-<p align="center"><img src="images/selected-frames.png" alt="selected-frames" width="900"></p>
+`86, 91, 95, 100, 104, 109, 113, 118, 122, 127, 131, 136` (0-based source indices)
 
-## 6. 统一缩回、共同裁剪与拼接
+![Selected source frames](images/selected-frames.png)
 
-**Python**对所有选中帧应用同一倍率，计算以视频中线为中心、左右对称的共同裁剪框，不逐帧重新居中、贴底或缩放。底部补 1 px，按从左到右、从上到下排列为 **6 列×2 行**。
+## 6. 第一次共同裁切
 
-<p align="center"><img src="images/spritesheet-before-removal.png" alt="spritesheet-before-removal" width="900"></p>
+303×249 px / frame
 
-每格 **303×249 px**，整张 **1818×498 px**。256×256 是角色尺度基准；成品按完整动作范围裁剪，保留相对位移。
+![First shared crop](images/first-crop-sheet.png)
 
-[下载去背景前的图集](images/spritesheet-before-removal.png)
+## 7. 逐帧 Refine、去特效与去背
 
-## 7. 整张去背景与交付
+逐帧图片工作流保留姿势、尺度与位置，修复动态模糊并同时清理背景。上排为第一次共同裁切，下排为图片工作流的原始输出。
 
-**ComfyUI**对整张图集去背景一次；**Python**验证尺寸、透明度及 GIF 时间，并打包素材；**Codex**检查并展示结果。棋盘格仅用于展示，原 PNG 为真正透明背景。
+[实际 Refine 提示词](prompts/refine.txt)
 
-<p align="center"><img src="images/spritesheet-preview.png" alt="spritesheet-preview" width="900"></p>
+![Source and refined comparison](images/refine-comparison.png)
 
-<p align="center"><img src="result/preview.gif" alt="preview" width="303"></p>
+![Raw refined frames](images/refined-sheet-preview.png)
 
-GIF 每段 **1.2 秒**，为了网页观看而重复。倒地后重新站起的跳变只是预览重新开始；游戏中此动作播放一次，然后保持尾姿势。
+## 8. Alpha 清理、再次共同裁切与交付
 
-| 下载 | 内容 |
-| --- | --- |
-| [透明精灵图集 PNG](result/spritesheet.png) | 12 · 6×2 · 303×249 px |
-| [预览 GIF](result/preview.gif) | 1.2 s |
-| [完整素材 ZIP](death-complete.zip) | 约 39 MB，含原图、站立参考、视频输入、源视频、全部 158 帧、12 张选中帧、实际提示词及成品。 |
-| [成品规格 JSON](result/animation.json) | 自动选段、采样、共同裁剪与播放时间 |
-| [实际去背景提示词](prompts/background-removal.txt) | 整张去背景使用的文字 |
+仅将 Alpha 小于 8 的值清为 0，保留其余半透明边缘；依全部帧共同裁切，底部保留 1 px 透明留白。棋盘格仅供预览。
 
-## 值得保存的素材
+![Alpha and second crop comparison](images/alpha-comparison.png)
 
-- 自然站立参考与动作画布：其他动作可复用角色尺度、站位与外观。
-- 源视频与全部帧：重新选段、人工挑帧或调整节奏，无需再次生成视频。
-- 实际提示词与输入图：可在 ComfyUI 测试后，将视频交回 Skill 处理。
+| 帧数 | 单帧尺寸 | 排列 | 帧表 | 播放时间 |
+| --- | --- | --- | --- | --- |
+| 12 | 303×249 | 6×2 | 1818×498 | 1.2 s |
 
-[连续循环：行走](../right-profile-walk/README.zh-CN.md) · [非连续循环：攻击](../right-profile-attack/README.zh-CN.md) · [不可循环：死亡](../right-profile-death/README.zh-CN.md)
+![Final spritesheet](images/spritesheet-preview.png)
+
+![Animation](result/preview.gif)
+
+[PNG](result/spritesheet.png) · [GIF](result/preview.gif) · [JSON](result/animation.json) · [完整素材包](death-complete.zip)
+
+[Workflow / validation](../../references/spritesheet.md)
+
+完整 ZIP 包含来源视频、全部来源帧、选中帧、裁切帧、工作流输入、原始 Refine 输出、最终帧、提示词，以及 PNG／GIF／JSON。

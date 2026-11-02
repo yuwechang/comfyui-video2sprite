@@ -4,11 +4,11 @@
 
 [← インストールと使い方](../../README.ja.md)
 
-参考画像をアップロードし、自然な立ち姿を確認した後、同じ立ち姿のキャンバスから直接動作を生成します。Python が姿勢の移行部分を除外し、ループを選んで透過成果物を作成します。
+立ち姿と演出用キャンバスを再利用して動画を生成します。自動選択と共通クロップ後、各フレームを Refine してエフェクトと背景を除去し、Alpha 整理と再共通クロップを経て統合します。
 
 <table>
   <tr><th>アップロードした参考画像</th><th>完成した歩行ループ</th></tr>
-  <tr><td align="center"><img src="images/character-reference.png" alt="キャラクター参考画像" height="300"></td><td align="center"><img src="result/preview.gif" alt="透過歩行ループ" height="246"><br>8 フレーム · 0.8 秒 · 透過背景</td></tr>
+  <tr><td align="center"><img src="images/character-reference.png" alt="キャラクター参考画像" height="300"></td><td align="center"><img src="result/preview.gif" alt="透過歩行ループ" height="247"><br>8 フレーム · 0.8 秒 · 透過背景</td></tr>
 </table>
 
 > **依頼内容：** 右向き、真横視点の歩行ループ。キャラクターの基準サイズは 256×256。
@@ -67,59 +67,48 @@
 
 **再利用：** 区間、選択フレーム、納品時の再生時間を変更しても、動画を生成し直す必要はありません。
 
-## 5. Python がループとフレームを自動選択
+元動画と実際の生成プロンプトはそのまま保持し、以下の成果物は現在の後段処理で作成しています。
 
-**Codex**が接続点で停止しない連続ループ `continuous` と分類します。**Python**が似た開始・終了姿勢を探し、準備と移行を除いて等間隔で選択します。
+## 5. 自動区間選択とサンプリング
 
-選択区間は **70～103 フレーム**。**104 フレーム目**は開始に似た終端姿勢なので重複して採用しません。選択した 8 枚は **70、74、78、83、87、91、96、100**。番号は 0 始まりです。
+`continuous` · 70–103 · 8 frames
 
-<p align="center"><img src="images/selected-frames.png" alt="自動選択された 8 フレーム" width="900"></p>
+`70, 74, 78, 83, 87, 91, 96, 100` (0-based source indices)
 
-| 動作の種類 | 区間の選び方 |
-| --- | --- |
-| 連続ループ | 開始・終了が類似。開始から終了−1 まで |
-| 停止を伴うループ | 構えと復帰姿勢が類似。両端を含め、接続点の停止を保持 |
-| 非ループ | 最後の安定姿勢から逆にたどり、条件を満たす最後の開始安定区間を選択。両端を含む |
+![Selected source frames](images/selected-frames.png)
 
-条件を満たす区間が見つからない場合は Codex が確認して指定します。元動画の全フレームと選択フレームは ZIP にも保存します。
+## 6. 最初の共通クロップ
 
-## 6. 共通倍率で縮小し、共通範囲で切り抜いて結合
+155×246 px / frame
 
-**Python**が全選択フレームに同じ倍率を適用し、共通の切り抜き範囲を求めます。動画の中心線に対して左右対称に動作範囲を確保し、フレームごとの中央寄せはしません。下に 1 px を追加し、左から右、上から下へ **4 列×2 行**で並べます。
+![First shared crop](images/first-crop-sheet.png)
 
-<p align="center"><img src="images/spritesheet-before-removal.png" alt="背景除去前の結合シート" width="620"></p>
+## 7. 各フレームの Refine・エフェクト除去・背景除去
 
-各セル **155×246 px**、シート全体 **620×492 px**。256×256 はキャラクターのスケール基準であり、セルは動作全体に合わせて長方形にもなります。
+画像ワークフローは姿勢・大きさ・位置を維持し、動きのぼけを修復して背景も除去します。上段は最初の共通クロップ、下段は画像ワークフローの未加工出力です。
 
-[背景除去前のシート](images/spritesheet-before-removal.png)
+[実際の Refine プロンプト](prompts/refine.txt)
 
-## 7. シート全体の背景を除去して納品
+![Source and refined comparison](images/refine-comparison.png)
 
-**ComfyUI**がシート全体の背景を一度に除去します。**Python**が寸法と透過を確認し、最終シートから GIF を作成して素材、全フレーム、選択フレーム、プロンプト、成果物をまとめます。**Codex**が確認し、対話に成果物と ZIP を提示します。
+![Raw refined frames](images/refined-sheet-preview.png)
 
-<p align="center"><img src="images/spritesheet-preview.png" alt="市松模様の上に表示した透過シート" width="620"></p>
+## 8. Alpha 整理・再共通クロップ・納品
 
-市松模様は表示用です。元の PNG は透過背景です。
+Alpha が 8 未満の値のみ 0 にし、他の半透明の縁は維持します。全フレームで共通範囲を再クロップし、下端に透明な 1 px を残します。市松模様はプレビュー専用です。
 
-<p align="center"><img src="result/preview.gif" alt="完成した歩行ループ GIF"></p>
+![Alpha and second crop comparison](images/alpha-comparison.png)
 
-| ダウンロード | 内容 |
-| --- | --- |
-| [透過 PNG シート](result/spritesheet.png) | 8 フレーム、4 列×2 行、各 155×246 |
-| [GIF プレビュー](result/preview.gif) | 透過、0.8 秒ループ |
-| [全素材 ZIP](walk-complete.zip) | 約 24 MB。原画像、立ち姿、入力画像、元動画、全 107 フレーム、選択 8 フレーム、プロンプト、成果物 |
-| [成果物 JSON](result/animation.json) | 自動選択、サンプリング、共通切り抜き、再生時間 |
-| [背景除去プロンプト](prompts/background-removal.txt) | シート全体の処理に使用した文面 |
+| フレーム数 | セルサイズ | 配置 | シート | 再生時間 |
+| --- | --- | --- | --- | --- |
+| 8 | 155×247 | 4×2 | 620×494 | 0.8 s |
 
-## 保存しておくと役立つ素材
+![Final spritesheet](images/spritesheet-preview.png)
 
-| 素材 | 再利用方法 |
-| --- | --- |
-| 自然な立ち姿 | 共通のスケール、立ち位置、外観 |
-| 立ち姿キャンバスとプロンプト | ComfyUI で別の動作や設定を試す |
-| 元動画と全フレーム | 区間、サンプリング、再生時間の変更 |
-| 最終透過シート | ゲームエンジンへの取り込みや別のプレビュー |
+![Animation](result/preview.gif)
 
-[インストールして使う →](../../README.ja.md)
+[PNG](result/spritesheet.png) · [GIF](result/preview.gif) · [JSON](result/animation.json) · [全素材 ZIP](walk-complete.zip)
 
-[連続ループ：歩行](../right-profile-walk/README.ja.md) · [停止を伴うループ：攻撃](../right-profile-attack/README.ja.md) · [非ループ：倒れる動作](../right-profile-death/README.ja.md)
+[Workflow / validation](../../references/spritesheet.md)
+
+ZIP には元動画、全元フレーム、選択フレーム、クロップ画像、ワークフロー入力、未加工の Refine 出力、最終フレーム、プロンプト、PNG／GIF／JSON を含みます。
