@@ -64,14 +64,15 @@ After installing the Skill and configuring workflows, start a new chat, attach a
 
 **One character per chat.** Supplementary references for that character stay in the same chat; use a new chat for another character. Uploading an image alone does not start production.
 
-The initial request collects only two selections, without asking again for information already supplied:
+The initial setup asks for three choices together, without asking again for information already supplied:
 
 1. **Stances (multiple selections):** normal / combat. Combat means a ready stance, not an additional attack animation.
 2. **Additional actions (multiple selections, optional):** walk / run / jump / death.
+3. **Character baseline size:** 128×128 / 256×256 (recommended) / 512×512, or a custom size. This sets the final character's scale, not the video resolution.
 
 **Idle is always created for every selected stance; no checkbox is needed.** Selecting both stances produces two versions of Idle and every selected action. With no additional actions, only Idle is made. All animations face right in a side view; mirror them in the game engine for left-facing playback.
 
-Confirm the stance references, shared scale and ground position, then complete each stance's Idle animation before extending it into other actions. Unless specified, Codex proposes a 256×256 character baseline; final shared-crop cells may be rectangular or exceed it during extended movements. The plan, assets and progress are saved in the working folder and reused without repeating setup questions.
+Confirm the stance references, shared scale and ground position, then complete each stance's Idle animation before extending it into other actions. Final shared-crop cells may be rectangular or exceed the baseline during extended movements. The plan, baseline size, assets and progress are saved in the working folder and reused without repeating setup questions.
 
 After delivery, say **“Create a new action”** and choose:
 
