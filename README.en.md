@@ -49,7 +49,7 @@ The Skill does not include models, nodes, FFmpeg, or ffprobe. Codex checks the e
 
 Tell Codex which working folder should hold your assets and results, and provide your workflow JSON files. It first tries `http://127.0.0.1:8188`, asks for another address only if that fails, then helps identify and save node mappings.
 
-After setup, follow “Create an animation” below in a new chat. Codex collects necessary choices and shows the stance references for review.
+After setup, follow “Create an animation” below in a new chat. Codex collects the necessary choices and briefly explains the production order and save locations: review stance references, complete Idle, then make and deliver the selected actions. Existing settings are reused; reference ambiguities are clarified only when they affect production.
 
 Provide API workflows that can generate action videos from character images and edit images from text instructions with transparent PNG output. Codex helps check suitability. Supported resolution and video length depend on your hardware and workflows.
 
