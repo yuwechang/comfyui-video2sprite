@@ -84,7 +84,7 @@ Ground actions use the corresponding Idle as their reference and retain the comp
 
 Selecting jump delivers separate rising and falling animations; later air actions reuse the saved reference.
 
-Frame count starts at 8 and is adjusted to the action. Each action receives its own deliverables:
+Frames are selected to preserve the action and its rhythm; single actions can use an adaptive frame count. Each action receives its own deliverables:
 
 - `spritesheet.png`: transparent sheet with equal-sized cells, ordered left to right, then top to bottom.
 - `preview.gif`: transparent GIF preview made from the final sheet.

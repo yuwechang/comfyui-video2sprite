@@ -31,11 +31,8 @@ def pack(frames, background=None):
 
 
 def timings(seconds, count):
-    durations = [round((i + 1) * seconds * 100 / count) * 10 -
-                 round(i * seconds * 100 / count) * 10 for i in range(count)]
-    if min(durations) < 10:
-        raise ValueError('GIF timing requires at least 10 ms per frame')
-    return durations
+    from frame_sampling import weighted_timings
+    return weighted_timings(seconds, [1] * count)
 
 
 def gif_frame(frame):
@@ -139,10 +136,10 @@ def scale_frames(frames, scale):
             for frame in frames]
 
 
-def prepare(video, output, max_side, count, start, end, seconds, loop, tolerance=32, scale=1, motion_type=None):
+def prepare(video, output, max_side, count, start, end, seconds, loop, tolerance=32, scale=1,
+            motion_type=None, lead_start=None, quality='compact', lead_refresh_ms=160):
     if seconds <= 0:
         raise ValueError('Duration must be positive')
-    timings(seconds, count)
     folder = Path(output)
     folder.mkdir(parents=True, exist_ok=True)
     automatic = None
@@ -162,7 +159,8 @@ def prepare(video, output, max_side, count, start, end, seconds, loop, tolerance
     elif start is None or end is None:
         raise ValueError('Manual selection requires both start and end')
     from frame_sampling import sample_video
-    indices, sampling = sample_video(video, start, end, count, motion_type, loop)
+    indices, sampling = sample_video(video, start, end, count, motion_type, loop, seconds=seconds,
+                                     quality=quality, lead_start=lead_start, lead_refresh_ms=lead_refresh_ms)
     frames = extract_frames(video, indices, folder)
     return prepare_frames(frames, indices, folder, max_side, seconds, loop, tolerance, scale,
                           motion_type, automatic, sampling=sampling)
@@ -217,6 +215,13 @@ def prepare_frames(frames, indices, output, max_side, seconds, loop=False, toler
 
 
 def playback_timings(seconds, count, sampling=None):
+    if sampling and 'frame_durations_ms' in sampling:
+        from source_clock import total_ticks, QUANTUM_MS
+        durations = sampling['frame_durations_ms']
+        if (len(durations) != count or any(type(d) is not int or d < QUANTUM_MS or d % QUANTUM_MS for d in durations)
+                or sum(durations) != total_ticks(seconds) * QUANTUM_MS):
+            raise ValueError('Frame durations must match selected frames and requested total')
+        return durations
     if sampling and 'timing_weights' in sampling:
         from frame_sampling import weighted_timings
         if len(sampling['timing_weights']) != count:
@@ -253,10 +258,13 @@ def finish(processed_sheet, report, output):
     sheet_path, gif_path = folder / 'spritesheet.png', folder / 'preview.gif'
     sheet.save(sheet_path)
     preview = [gif_frame(frame) for frame in frames]
-    durations = report.get('frame_durations_ms', timings(report['requested_seconds'], len(frames)))
-    if (len(durations) != len(frames) or any(type(d) is not int or d < 10 or d % 10 for d in durations)
-            or sum(durations) != round(report['requested_seconds']*100)*10):
-        raise ValueError('Frame durations must match frame count and requested total on the 10 ms grid')
+    durations = report.get('frame_durations_ms')
+    if durations is None:
+        durations = timings(report['requested_seconds'], len(frames))
+    from source_clock import total_ticks, QUANTUM_MS
+    if (len(durations) != len(frames) or any(type(d) is not int or d < QUANTUM_MS or d % QUANTUM_MS for d in durations)
+            or sum(durations) != total_ticks(report['requested_seconds']) * QUANTUM_MS):
+        raise ValueError('Frame durations must match frame count and requested total on the 20 ms grid')
     preview[0].save(gif_path, save_all=True, append_images=preview[1:],
                     duration=durations, disposal=2, transparency=255,
                     background=255, optimize=False, loop=0)
@@ -286,7 +294,10 @@ def main():
     parser.add_argument('--max-side', type=int, help='Optional cap on the final cropped cell')
     parser.add_argument('--scale', type=float, default=1, help='Uniform frame scale before common crop')
     parser.add_argument('--background-tolerance', type=int, default=32)
-    parser.add_argument('--count', type=int, default=8)
+    parser.add_argument('--count', type=int, help='Explicit Y count; default adaptive for single actions, 8 for loops')
+    parser.add_argument('--quality', choices=('compact', 'balanced', 'smooth'), default='compact')
+    parser.add_argument('--lead-start', type=int, help='Meaningful X start A before hold_end_pose main start B')
+    parser.add_argument('--lead-refresh-ms', type=float, default=160, help='X representative cadence; never extends X time')
     parser.add_argument('--start', type=int)
     parser.add_argument('--end', type=int)
     parser.add_argument('--motion-type', choices=('loop','return_to_start','hold_end_pose'))
@@ -295,7 +306,8 @@ def main():
                         help='Use loop sampling for manual intervals without --motion-type; GIF always repeats')
     args = parser.parse_args()
     result = prepare(args.video, args.output, args.max_side, args.count, args.start, args.end,
-                     args.seconds, args.loop, args.background_tolerance, args.scale, args.motion_type)
+                     args.seconds, args.loop, args.background_tolerance, args.scale, args.motion_type,
+                     args.lead_start, args.quality, args.lead_refresh_ms)
     (Path(args.output) / 'selection.json').write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding='utf-8')
     print(json.dumps(result, ensure_ascii=False))
 

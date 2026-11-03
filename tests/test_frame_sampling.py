@@ -42,7 +42,7 @@ class SamplingTests(unittest.TestCase):
         self.assertTrue(any(30 <= i <= 31 for i in indices))
 
     def test_other_types_do_not_decode_or_change_uniform_sampling(self):
-        for kind in ('loop', 'hold_end_pose', None):
+        for kind in ('loop', None):
             with patch('select_segment.features', side_effect=AssertionError('No adaptive analysis')):
                 indices, report = sample_video('unused.mp4', 4, 43, 8, kind, kind=='loop')
             self.assertEqual(indices, spritesheet.sample_indices(4, 43, 8, kind=='loop'))
@@ -56,7 +56,7 @@ class SamplingTests(unittest.TestCase):
         self.assertEqual(sum(durations), 1200)
         self.assertGreater(durations[0], durations[2])
         self.assertTrue(all(d >= 10 and d % 10 == 0 for d in durations))
-        self.assertEqual(sum(weighted_timings(.05, [1000, 1, 1, 1, 1000])), 50)
+        self.assertEqual(sum(weighted_timings(.11, [1000, 1, 1, 1, 1000])), 100)
         with self.assertRaises(ValueError):
             weighted_timings(.04, weights)
 
@@ -66,7 +66,8 @@ class SamplingTests(unittest.TestCase):
              patch.object(airborne_pipeline, 'selected_finish', return_value={}) as finish:
             airborne_pipeline.action('source.mp4', 'ref.json', 2, 10, 3, 'job', 'out', 'image.json',
                                      'prompt.txt', .6, scale=1)
-        select.assert_called_once_with('source.mp4', 2, 10, 3, 'return_to_start', False)
+        select.assert_called_once_with('source.mp4', 2, 10, 3, 'return_to_start', False,
+                                      seconds=.6, quality='compact', lead_start=None, lead_refresh_ms=160)
         self.assertEqual(finish.call_args.args[1], [2,7,10])
         self.assertEqual(finish.call_args.kwargs['sampling'], {'strategy':'test'})
 

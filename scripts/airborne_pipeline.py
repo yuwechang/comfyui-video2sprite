@@ -32,13 +32,16 @@ def selected_finish(video, indices, reference, roi, job, output, image_profile, 
 
 
 def action(video, reference_profile, start, end, count, job, output, image_profile, prompt_file,
-           seconds, motion_type='return_to_start', **options):
+           seconds, motion_type='return_to_start', lead_start=None, quality='compact',
+           lead_refresh_ms=160, **options):
     if motion_type not in ('loop', 'return_to_start', 'hold_end_pose'):
         raise ValueError('Unknown motion type')
     reference, roi = load_reference(reference_profile)
     if options.get('scale') is None:
         options['scale'] = json.loads(Path(reference_profile).read_text(encoding='utf-8-sig'))['frame_scale']
-    indices, sampling = sample_video(video, start, end, count, motion_type, motion_type=='loop')
+    indices, sampling = sample_video(video, start, end, count, motion_type, motion_type=='loop',
+                                     seconds=seconds, quality=quality, lead_start=lead_start,
+                                     lead_refresh_ms=lead_refresh_ms)
     return selected_finish(video, indices, reference, roi, job, output, image_profile, prompt_file,
                            seconds, motion_type=motion_type, sampling=sampling, **options)
 
@@ -73,7 +76,8 @@ def jump(video, rise_start, apex, fall_end, roi, rise_count, fall_count, job, ou
                       duration_ms=sum(timings(seconds, len(selected))),
                       frame_durations_ms=timings(seconds, len(selected)),
                       columns=columns, rows=rows, loop=False, motion_type='hold_end_pose',
-                      shared_apex_source_index=apex, shared_crop_source_indices=indices)
+                      shared_apex_source_index=apex, shared_crop_source_indices=indices,
+                      sampling={'strategy': 'uniform', 'phase': name})
         for field in ('cropped_frames', 'final_frames', 'refinement'):
             report[field] = [result[field][i] for i in orders]
         # Keep shared transform/crop metadata: both phases use the identical cut-point pixels.
@@ -103,7 +107,10 @@ def main():
             cmd.add_argument('--reference-profile', required=True)
             cmd.add_argument('--start', type=int, required=True)
             cmd.add_argument('--end', type=int, required=True)
-            cmd.add_argument('--count', type=int, default=8)
+            cmd.add_argument('--count', type=int)
+            cmd.add_argument('--quality', choices=('compact', 'balanced', 'smooth'), default='compact')
+            cmd.add_argument('--lead-start', type=int)
+            cmd.add_argument('--lead-refresh-ms', type=float, default=160)
             cmd.add_argument('--seconds', type=float, required=True)
             cmd.add_argument('--motion-type', choices=('loop','return_to_start','hold_end_pose'), default='return_to_start')
         else:

@@ -60,10 +60,10 @@ def stable_runs(motion, threshold, minimum=2):
     return runs
 
 
-def locate(images, kind, stride=1, count=8, stable_threshold=None):
+def locate(images, kind, stride=1, count=None, stable_threshold=None):
     if kind not in ('loop','return_to_start','hold_end_pose'):
         raise ValueError('Unknown motion type')
-    if count<2 or len(images)<4:
+    if (count is not None and (type(count) is not int or count<2)) or len(images)<4:
         raise ValueError('Need at least two samples and four analysis frames')
     if stable_threshold is not None and (not math.isfinite(stable_threshold) or stable_threshold<0):
         raise ValueError('Stable threshold must be finite and nonnegative')
@@ -79,7 +79,8 @@ def locate(images, kind, stride=1, count=8, stable_threshold=None):
     ordered=sorted(motion)
     threshold=stable_threshold if stable_threshold is not None else max(.008,min(.18,ordered[len(ordered)*35//100]*1.5))
     runs=stable_runs(motion,threshold)
-    minimum=max(4,math.ceil(count/stride))
+    minimum=max(4 if kind=='loop' else 2,
+                math.ceil((count if count is not None else (8 if kind=='loop' else 2))/stride))
     def movement(a,b):
         return max(distance(a,k) for k in range(a+1,b)) if b>a+1 else 0
     candidates=[]
@@ -98,6 +99,14 @@ def locate(images, kind, stride=1, count=8, stable_threshold=None):
                 seam=distance(head,tail)
                 if seam<=.30:
                     candidates.append((seam+.02*(tail-head)/n,head,tail,seam))
+        if not candidates:
+            # A single action need not pause at both ends. Fall back to matching poses;
+            # this remains a candidate requiring visual confirmation, not a type change.
+            for head in range(n-minimum):
+                for tail in range(head+minimum,n):
+                    seam=distance(head,tail)
+                    if seam<=.30 and movement(head,tail)>=.16:
+                        candidates.append((seam+.02*(1-(tail-head)/n),head,tail,seam))
     else:
         # Final stable run is the terminal pose, not another start candidate.
         terminal=[run for run in runs if run[1]>=n-3]
@@ -119,10 +128,12 @@ def locate(images, kind, stride=1, count=8, stable_threshold=None):
             'end':tail-1 if kind=='loop' else tail,'matching_tail':tail,
             'loop':kind=='loop','seam_distance':round(seam,5),
             'analysis_stride':stride,'stable_threshold':threshold,
+            'review_required':True, 'lead_review_required':kind=='hold_end_pose',
+            'lead_candidate_range':[0,start] if kind=='hold_end_pose' else None,
             'stable_runs':[[x*stride,y*stride] for x,y in runs]}
 
 
-def select(video,kind,count=8,stable_threshold=None):
+def select(video,kind,count=None,stable_threshold=None):
     images,stride=features(video)
     return locate(images,kind,stride,count,stable_threshold)
 
@@ -131,7 +142,7 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('video')
     parser.add_argument('--motion-type',required=True,choices=('loop','return_to_start','hold_end_pose'))
-    parser.add_argument('--count',type=int,default=8)
+    parser.add_argument('--count',type=int,help='Optional explicit sample count, not a default segment length')
     parser.add_argument('--stable-threshold',type=float)
     parser.add_argument('--output')
     args=parser.parse_args()

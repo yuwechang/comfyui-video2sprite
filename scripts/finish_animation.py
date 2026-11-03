@@ -11,10 +11,11 @@ from generate import save
 
 def finish_action(video, max_side, image_profile, prompt_file, job, output,
                   count, start, end, seconds, loop, tolerance=32, scale=1, motion_type=None,
-                  alpha_cutoff=8):
+                  alpha_cutoff=8, lead_start=None, quality='compact', lead_refresh_ms=160):
     validate_alpha_cutoff(alpha_cutoff)
     # The optional size cap belongs to the final transparent crop, not the input.
-    report = prepare(video, job, None, count, start, end, seconds, loop, tolerance, scale, motion_type)
+    report = prepare(video, job, None, count, start, end, seconds, loop, tolerance, scale, motion_type,
+                     lead_start, quality, lead_refresh_ms)
     return finish_prepared(report, image_profile, prompt_file, job, output, max_side, alpha_cutoff)
 
 
@@ -134,7 +135,10 @@ def main():
     parser.add_argument('--background-tolerance', type=int, default=32)
     parser.add_argument('--alpha-cutoff', type=int, default=8,
                         help='Clear alpha below this value before final crop (0 disables; default 8)')
-    parser.add_argument('--count', type=int, default=8)
+    parser.add_argument('--count', type=int, help='Explicit Y count; default adaptive for single actions, 8 for loops')
+    parser.add_argument('--quality', choices=('compact', 'balanced', 'smooth'), default='compact')
+    parser.add_argument('--lead-start', type=int)
+    parser.add_argument('--lead-refresh-ms', type=float, default=160)
     parser.add_argument('--start', type=int)
     parser.add_argument('--end', type=int)
     parser.add_argument('--motion-type', choices=('loop','return_to_start','hold_end_pose'))
@@ -146,7 +150,7 @@ def main():
         result = finish_action(args.video, args.max_side, args.image_profile, args.prompt_file,
                                args.job, args.output, args.count, args.start, args.end,
                                args.seconds, args.loop, args.background_tolerance, args.scale,
-                               args.motion_type, args.alpha_cutoff)
+                               args.motion_type, args.alpha_cutoff, args.lead_start, args.quality, args.lead_refresh_ms)
         print(json.dumps({key: result[key] for key in
                           ('frames', 'cell_width', 'cell_height', 'columns', 'rows', 'sheet', 'preview', 'verified')},
                          ensure_ascii=False))
