@@ -8,15 +8,18 @@ import subprocess
 from PIL import Image, ImageChops, ImageStat
 
 
-def features(video):
+def features(video, start=None, end=None, full_rate=False):
     info = json.loads(subprocess.check_output(['ffprobe','-v','error','-select_streams','v:0',
         '-show_entries','stream=width,height,avg_frame_rate','-of','json',str(video)]))['streams'][0]
     numerator,denominator = map(float,info['avg_frame_rate'].split('/'))
-    stride = max(1,math.ceil(numerator/denominator/12))
+    stride = 1 if full_rate else max(1,math.ceil(numerator/denominator/12))
+    if (start is None) != (end is None) or (start is not None and not 0 <= start <= end):
+        raise ValueError('Analysis interval requires 0 <= start <= end')
     scale = min(1,96/max(info['width'],info['height']))
     size = tuple(max(1,round(info[k]*scale)) for k in ('width','height'))
+    selection = f'between(n\\,{start}\\,{end})' if start is not None else f'not(mod(n\\,{stride}))'
     command=['ffmpeg','-v','error','-i',str(video),'-vf',
-             f'select=not(mod(n\\,{stride})),scale={size[0]}:{size[1]}',
+             f'select={selection},scale={size[0]}:{size[1]}',
              '-fps_mode','vfr','-f','rawvideo','-pix_fmt','rgb24','-']
     images=[]
     with subprocess.Popen(command,stdout=subprocess.PIPE) as process:
@@ -34,7 +37,9 @@ def features(video):
             images.append(ImageChops.lighter(silhouette,intensity))
         if process.wait()!=0:
             raise ValueError('Video analysis decode failed')
-    if len(images)<4:
+    if start is not None and len(images) != end-start+1:
+        raise ValueError('Video did not contain every analysis frame')
+    if len(images)<(2 if full_rate else 4):
         raise ValueError('Video is too short for segment analysis')
     bounds=[im.getbbox() for im in images if im.getbbox()]
     if not bounds:

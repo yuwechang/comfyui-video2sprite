@@ -34,7 +34,7 @@ python scripts/airborne_pipeline.py jump source.mp4 --rise-start RISE_START --ap
 
 ## 腰部垂直定位
 
-操作順序固定：**選段 → 等距取樣 → 只抽出選中影格 → 腰部定位 → 第一次共同裁切 → 只對選中影格逐張 Refine／去背 → Alpha 清理 → 再次共同裁切 → 拼表與預覽**。
+操作順序固定：**選段 → 依動作類型取樣 → 只抽出選中影格 → 腰部定位 → 第一次共同裁切 → 只對選中影格逐張 Refine／去背 → Alpha 清理 → 再次共同裁切 → 拼表與預覽**。取樣策略及逐格時間依[影格表指引](spritesheet.md#依動作類型選幀與保留節奏)；跳躍分段維持上文的等距取樣。
 
 Codex 在切點原始畫布上指定一次 `waist_roi=[x0,y0,x1,y1]`，範圍以腰部可辨識的身體與服裝特徵為主，避免只選背景或整片無紋理顏色。區域須在畫布內，兩邊至少 12 像素。腰部是最終決定的垂直定位基準，不是重新估計人體物理旋轉軸，也不是每張輪廓、面積或頭部中心。
 
@@ -44,7 +44,7 @@ Codex 在切點原始畫布上指定一次 `waist_roi=[x0,y0,x1,y1]`，範圍以
 
 ## 空中追加動作
 
-前段以保存的完整空中參考圖為影片輸入，維持其畫布尺寸及角色尺度。依所選動作類型描述空中起收姿態與節奏；不自動加入地面起跳、接地或地面 Idle。需要返回起始時，回到同一空中基準。來源停留及發力節奏由等距取樣保留，不以非等距挑格壓縮相近姿態。
+前段以保存的完整空中參考圖為影片輸入，維持其畫布尺寸及角色尺度。依所選動作類型描述空中起收姿態與節奏；不自動加入地面起跳、接地或地面 Idle。需要返回起始時，回到同一空中基準。後段與地面共用依動作類型選幀及時間分配的規則，不因非等距選幀而自動縮短來源停留。
 
 ```text
 python scripts/airborne_pipeline.py action source.mp4 --reference-profile outputs/action/airborne-reference/airborne-reference.json --start START --end END --count 8 --seconds 0.8 --motion-type return_to_start --job work/new-action/finish-job --output outputs/new-action --image-profile .local/image-profile.json --prompt-file work/new-action/refine.txt

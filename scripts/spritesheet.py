@@ -161,10 +161,11 @@ def prepare(video, output, max_side, count, start, end, seconds, loop, tolerance
         start,end = automatic['start'],automatic['end']
     elif start is None or end is None:
         raise ValueError('Manual selection requires both start and end')
-    indices = sample_indices(start, end, count, loop)
+    from frame_sampling import sample_video
+    indices, sampling = sample_video(video, start, end, count, motion_type, loop)
     frames = extract_frames(video, indices, folder)
     return prepare_frames(frames, indices, folder, max_side, seconds, loop, tolerance, scale,
-                          motion_type, automatic)
+                          motion_type, automatic, sampling=sampling)
 
 
 def extract_frames(video, indices, folder):
@@ -188,12 +189,12 @@ def extract_frames(video, indices, folder):
 
 
 def prepare_frames(frames, indices, output, max_side, seconds, loop=False, tolerance=32,
-                   scale=1, motion_type=None, automatic=None, crop_margin=0):
+                   scale=1, motion_type=None, automatic=None, crop_margin=0, sampling=None):
     """Common crop and persist already selected frames; does not select or generate frames."""
     if not frames or len(frames) != len(indices):
         raise ValueError('Selected frames and source indices must match')
     count = len(frames)
-    timings(seconds, count)
+    durations = playback_timings(seconds, count, sampling)
     folder = Path(output)
     folder.mkdir(parents=True, exist_ok=True)
     original_size = list(frames[0].size)
@@ -208,10 +209,20 @@ def prepare_frames(frames, indices, output, max_side, seconds, loop=False, toler
     width, height = frames[0].size
     return {'frames': count, 'cell_width': width, 'cell_height': height,
             'order': 'left-to-right, top-to-bottom',
-            'sample_indices': indices, 'duration_ms': sum(timings(seconds, count)),
+            'sample_indices': indices, 'duration_ms': sum(durations),
+            'frame_durations_ms': durations, 'sampling': sampling or {'strategy': 'explicit'},
             'requested_seconds': seconds, 'loop': loop, 'cropped_frames': inputs,
             'original_frame_size': original_size, 'frame_scale': scale,
             'motion_type': motion_type, 'automatic_selection': automatic, **crop_info}
+
+
+def playback_timings(seconds, count, sampling=None):
+    if sampling and 'timing_weights' in sampling:
+        from frame_sampling import weighted_timings
+        if len(sampling['timing_weights']) != count:
+            raise ValueError('Timing weights must match selected frames')
+        return weighted_timings(seconds, sampling['timing_weights'])
+    return timings(seconds, count)
 
 
 def finish(processed_sheet, report, output):
@@ -242,7 +253,10 @@ def finish(processed_sheet, report, output):
     sheet_path, gif_path = folder / 'spritesheet.png', folder / 'preview.gif'
     sheet.save(sheet_path)
     preview = [gif_frame(frame) for frame in frames]
-    durations = timings(report['requested_seconds'], len(frames))
+    durations = report.get('frame_durations_ms', timings(report['requested_seconds'], len(frames)))
+    if (len(durations) != len(frames) or any(type(d) is not int or d < 10 or d % 10 for d in durations)
+            or sum(durations) != round(report['requested_seconds']*100)*10):
+        raise ValueError('Frame durations must match frame count and requested total on the 10 ms grid')
     preview[0].save(gif_path, save_all=True, append_images=preview[1:],
                     duration=durations, disposal=2, transparency=255,
                     background=255, optimize=False, loop=0)
@@ -257,7 +271,8 @@ def finish(processed_sheet, report, output):
                 raise ValueError('GIF frame has no transparent background')
         if actual_duration != sum(durations) or gif.size != (width, height):
             raise ValueError('GIF verification failed')
-    result = {**report, 'sheet': str(sheet_path.resolve()), 'preview': str(gif_path.resolve()),
+    result = {**report, 'frame_durations_ms': durations, 'duration_ms': sum(durations),
+              'sheet': str(sheet_path.resolve()), 'preview': str(gif_path.resolve()),
               'verified': {'dimensions': True, 'cell_alpha': True, 'gif_transparency': True,
                            'gif_duration_ms': actual_duration}}
     (folder / 'animation.json').write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding='utf-8')

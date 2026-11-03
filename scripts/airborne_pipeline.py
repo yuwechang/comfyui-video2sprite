@@ -7,17 +7,19 @@ from airborne import align_selected, load_reference, create_reference
 from spritesheet import extract_frames, prepare_frames, sample_indices, pack, finish, timings
 from finish_animation import finish_prepared
 from generate import save
+from frame_sampling import sample_video
 
 
 def selected_finish(video, indices, reference, roi, job, output, image_profile, prompt_file,
                     seconds, scale=1, max_side=None, motion_type='return_to_start',
-                    overrides=None, max_error=.25, alpha_cutoff=8, crop_margin=8, selected_frames=None):
+                    overrides=None, max_error=.25, alpha_cutoff=8, crop_margin=8, selected_frames=None,
+                    sampling=None):
     job = Path(job)
     frames = selected_frames if selected_frames is not None else extract_frames(video, indices, job)
     original_size = list(frames[0].size)
     aligned, alignment = align_selected(frames, indices, reference, roi, job, overrides, max_error)
     prepared = prepare_frames(aligned, indices, job, None, seconds, motion_type=='loop',
-                              scale=scale, motion_type=motion_type, crop_margin=crop_margin)
+                              scale=scale, motion_type=motion_type, crop_margin=crop_margin, sampling=sampling)
     prepared.update(vertical_alignment=alignment, environment='air', original_video_frame_size=original_size)
     result = finish_prepared(prepared, image_profile, prompt_file, job, output, max_side, alpha_cutoff)
     first, second = result['first_crop'], result['refined_crop']
@@ -36,9 +38,9 @@ def action(video, reference_profile, start, end, count, job, output, image_profi
     reference, roi = load_reference(reference_profile)
     if options.get('scale') is None:
         options['scale'] = json.loads(Path(reference_profile).read_text(encoding='utf-8-sig'))['frame_scale']
-    indices = sample_indices(start, end, count, motion_type=='loop')
+    indices, sampling = sample_video(video, start, end, count, motion_type, motion_type=='loop')
     return selected_finish(video, indices, reference, roi, job, output, image_profile, prompt_file,
-                           seconds, motion_type=motion_type, **options)
+                           seconds, motion_type=motion_type, sampling=sampling, **options)
 
 
 def jump(video, rise_start, apex, fall_end, roi, rise_count, fall_count, job, output,
@@ -69,6 +71,7 @@ def jump(video, rise_start, apex, fall_end, roi, rise_count, fall_count, job, ou
         report = dict(result)
         report.update(frames=len(selected), sample_indices=selected, requested_seconds=seconds,
                       duration_ms=sum(timings(seconds, len(selected))),
+                      frame_durations_ms=timings(seconds, len(selected)),
                       columns=columns, rows=rows, loop=False, motion_type='hold_end_pose',
                       shared_apex_source_index=apex, shared_crop_source_indices=indices)
         for field in ('cropped_frames', 'final_frames', 'refinement'):

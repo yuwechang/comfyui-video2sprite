@@ -90,6 +90,8 @@ Frame count starts at 8 and is adjusted to the action. Each action receives its 
 - `animation.json`: dimensions, sampling, playback timing, and other output data.
 - A ZIP containing the uploaded image, stance reference, video input, source video, all extracted and selected frames, actual prompts, and final outputs.
 
+When importing into a game engine, use the per-frame durations in the supplied animation data to preserve the action's rhythm.
+
 Image and video processing run in local ComfyUI. Prompt preparation, conversation, and visual review still use Codex usage allowance.
 
 Keep the character and equipment clearly visible. Frame cleanup can remove incidental effects and repair motion blur, but cannot reliably reconstruct completely hidden body parts or equipment.
