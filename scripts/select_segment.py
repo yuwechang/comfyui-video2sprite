@@ -1,4 +1,4 @@
-"""Locate a continuous loop, paused loop, or one-shot interval from visual motion."""
+"""Locate a loop, return-to-start action, or end-pose hold from visual motion."""
 import argparse
 import json
 import math
@@ -56,7 +56,7 @@ def stable_runs(motion, threshold, minimum=2):
 
 
 def locate(images, kind, stride=1, count=8, stable_threshold=None):
-    if kind not in ('continuous','paused','once'):
+    if kind not in ('loop','return_to_start','hold_end_pose'):
         raise ValueError('Unknown motion type')
     if count<2 or len(images)<4:
         raise ValueError('Need at least two samples and four analysis frames')
@@ -78,7 +78,7 @@ def locate(images, kind, stride=1, count=8, stable_threshold=None):
     def movement(a,b):
         return max(distance(a,k) for k in range(a+1,b)) if b>a+1 else 0
     candidates=[]
-    if kind=='continuous':
+    if kind=='loop':
         for a in range(n-minimum):
             for b in range(a+minimum,n):
                 seam=distance(a,b)
@@ -86,7 +86,7 @@ def locate(images, kind, stride=1, count=8, stable_threshold=None):
                 neighbours=[distance(a+d,b+d) for d in (-1,0,1) if 0<=a+d<n and 0<=b+d<n]
                 score=seam+.35*sum(neighbours)/len(neighbours)+.025*(b-a)/n
                 candidates.append((score,a,b,seam))
-    elif kind=='paused':
+    elif kind=='return_to_start':
         for i,(_,head) in enumerate(runs):
             for tail,_ in runs[i+1:]:
                 if tail-head<minimum or movement(head,tail)<.16:continue
@@ -111,8 +111,8 @@ def locate(images, kind, stride=1, count=8, stable_threshold=None):
     score,a,b,seam=candidates[0]
     start,tail=a*stride,b*stride
     return {'status':'selected','motion_type':kind,'start':start,
-            'end':tail-1 if kind=='continuous' else tail,'matching_tail':tail,
-            'loop':kind=='continuous','seam_distance':round(seam,5),
+            'end':tail-1 if kind=='loop' else tail,'matching_tail':tail,
+            'loop':kind=='loop','seam_distance':round(seam,5),
             'analysis_stride':stride,'stable_threshold':threshold,
             'stable_runs':[[x*stride,y*stride] for x,y in runs]}
 
@@ -125,7 +125,7 @@ def select(video,kind,count=8,stable_threshold=None):
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('video')
-    parser.add_argument('--motion-type',required=True,choices=('continuous','paused','once'))
+    parser.add_argument('--motion-type',required=True,choices=('loop','return_to_start','hold_end_pose'))
     parser.add_argument('--count',type=int,default=8)
     parser.add_argument('--stable-threshold',type=float)
     parser.add_argument('--output')

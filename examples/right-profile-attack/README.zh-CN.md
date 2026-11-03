@@ -1,105 +1,75 @@
-# 出拳攻击：非连续循环
+# 出拳攻击：返回起始动作
 
 [繁體中文](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [English](README.en.md)
 
-[← 返回安装与使用说明](../../README.zh-CN.md)
+[← README](../../README.zh-CN.md)
 
-沿用自然站立参考与演出版面生成动作视频；自动选段及共同裁切后，逐帧 Refine、去特效并去背，再清理 Alpha、共同裁切及合并交付。
+本页展示单个动作的实际素材与处理成果，不是新角色首次制作的完整操作步骤。开始制作请按主说明选择姿态与动作；每个姿态都包含 Idle。
 
-<table><tr><th>角色参考图</th><th>透明成品</th></tr><tr><td align="center"><img src="images/character-reference.png" alt="reference" height="300"></td><td align="center"><img src="result/preview.gif" alt="preview" height="245"></td></tr></table>
+下方可比较来源视频、清理前后的帧与最终成果，并下载实际素材和提示词。
 
-> 面朝右的出拳攻击，最后回到战斗架势，角色基准大小 256×256。
+## 1. 角色参考图
 
-本例使用 MiniMax H3 生成视频、Qwen Image 2.1 处理图片。下列均为实际使用的素材与提示词。
+<p><img src="images/character-reference.png" alt="Character reference" width="400"></p>
 
-## 1. 上传角色参考图
+[PNG](images/character-reference.png)
 
-**用户**提供角色参考与需求。**Codex**判断这张带有透视与动态姿势的宣传图，需要先准备完整的自然站立参考。
+## 2. 姿态参考
 
-<p align="center"><img src="images/character-reference.png" alt="character-reference" width="400"></p>
+本例使用下方自然站立参考；灰底与黄色框线仅供确认，不会画入透明素材。
 
-[下载原图](images/character-reference.png)
+![Stance reference](images/standing-preview.png)
 
-## 2. 建立自然站立参考与固定站位
+[PNG](images/standing.png) · [实际提示词](prompts/standing.txt)
 
-**ComfyUI**生成自然站立参考；**Python**整理短边 3% 的内边距。本次参考图为 **1024×1536、内边距 31 px**。建立动作画布时，以脚下位置作为水平锚点和底部基准，避免头发与飘带改变身体站位。**Codex**展示参考供确认。
+## 3. 视频输入图
 
-<p align="center"><img src="images/standing-preview.png" alt="standing-preview" width="900"></p>
+为角色预留动作空间，减少四肢、头发或装备超出画面的情况。
 
-左侧是实际透明 PNG，右侧是灰底与黄色内边距框的确认图。背景与框线不进入透明原图。共用图片内的标签为繁体中文。
+![Video input](images/video-input.png)
 
-[透明站立图](images/standing.png) · [实际站立提示词](prompts/standing.txt)
+[PNG](images/video-input.png)
 
-## 3. 直接建立视频输入画布
+## 4. 来源视频
 
-**动作画布为动作伸展预留空间，降低四肢、头发与配件超出画面被截断的可能。** **Python**直接放入自然站姿，保持固定锚点，按像素预算确定生成尺度，再补齐工作流的尺寸倍数。交付时按完整动作统一裁剪。
+![Source video preview](video/source-preview.gif)
 
-<p align="center"><img src="images/video-input.png" alt="video-input" width="640"></p>
+[MP4](video/source.mp4) · [实际提示词](prompts/video.txt)
 
-| 项目 | 本次结果 |
-| --- | --- |
-| 角色目标基准框 | 256×256 |
-| 生成画布 | 1152×896 |
-| 背景 | 纯灰 RGB（128, 128, 128） |
-| 像素预算 | 对齐前 998,280；对齐后 1,032,192，允许补边余量 |
-| 统一缩回倍率 | 256÷564 ≈ 0.453901 |
+## 5. 选中的帧
 
-[下载实际视频输入图](images/video-input.png)
+![Selected frames](images/selected-frames.png)
 
-## 4. 从站姿生成目标动作
+## 6. 共同裁切
 
-**Codex**编写从自然站姿进入战斗架势、再进行目标动作的提示词；**Python**提交、在本机等待并下载；**ComfyUI**生成视频。
+全部选中帧使用相同范围裁切，保持动作中的位置关系。
 
-本片实际演出连续出拳后回到架势；成品保留所选区间的实际动作。
+![Shared crop](images/first-crop-sheet.png)
 
-<p align="center"><img src="video/source-preview.gif" alt="source-preview" width="576"></p>
+## 7. 帧修整与去背
 
-原片：**1152×896、24 FPS、107 帧、约 4.46 秒**。上图为网页 GIF；MP4 保留原始分辨率。
+修复动态模糊、清理多余效果并移除背景。比较图上排为清理前，下排为清理后。
 
-[观看／下载 MP4](video/source.mp4) · [实际视频提示词](prompts/video.txt)
+![Before and after](images/refine-comparison.png)
 
-来源视频与实际生成提示词保留原样；以下成品以当前后段流程重新处理。
+![Refined frames](images/refined-sheet-preview.png)
 
-## 5. 自动选段与采样
+[实际提示词](prompts/refine.txt)
 
-`paused` · 48–94 · 12 frames
+## 8. 透明边缘整理与成品
 
-`48, 52, 56, 61, 65, 69, 73, 77, 81, 86, 90, 94` (0-based source indices)
+整理透明边缘后，按所有帧的角色范围再次共同裁切。棋盘格只是显示透明区域的预览背景。
 
-![Selected source frames](images/selected-frames.png)
-
-## 6. 第一次共同裁切
-
-217×245 px / frame
-
-![First shared crop](images/first-crop-sheet.png)
-
-## 7. 逐帧 Refine、去特效与去背
-
-逐帧图片工作流保留姿势、尺度与位置，修复动态模糊并同时清理背景。上排为第一次共同裁切，下排为图片工作流的原始输出。
-
-[实际 Refine 提示词](prompts/refine.txt)
-
-![Source and refined comparison](images/refine-comparison.png)
-
-![Raw refined frames](images/refined-sheet-preview.png)
-
-## 8. Alpha 清理、再次共同裁切与交付
-
-仅将 Alpha 小于 8 的值清为 0，保留其余半透明边缘；依全部帧共同裁切，底部保留 1 px 透明留白。棋盘格仅供预览。
-
-![Alpha and second crop comparison](images/alpha-comparison.png)
+![Edge cleanup and crop](images/alpha-comparison.png)
 
 | 帧数 | 单帧尺寸 | 排列 | 帧表 | 播放时间 |
 | --- | --- | --- | --- | --- |
 | 12 | 217×245 | 6×2 | 1302×490 | 0.8 s |
 
-![Final spritesheet](images/spritesheet-preview.png)
+![Spritesheet](images/spritesheet-preview.png)
 
-![Animation](result/preview.gif)
+![Animation preview](result/preview.gif)
 
 [PNG](result/spritesheet.png) · [GIF](result/preview.gif) · [JSON](result/animation.json) · [完整素材包](attack-complete.zip)
 
-[Workflow / validation](../../references/spritesheet.md)
-
-完整 ZIP 包含来源视频、全部来源帧、选中帧、裁切帧、工作流输入、原始 Refine 输出、最终帧、提示词，以及 PNG／GIF／JSON。
+素材包包含角色参考、视频输入、来源视频、各阶段帧、实际提示词与 PNG／GIF／JSON 成品。

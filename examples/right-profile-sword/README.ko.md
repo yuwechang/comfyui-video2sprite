@@ -4,74 +4,76 @@
 
 [← README](../../README.ko.md)
 
-동일한 서 있는 캔버스에 실제 검을 추가한 뒤 검 공격 영상을 생성합니다. 서 있는 참조에는 검이 없고 실제 영상 입력에는 검이 있습니다.
+이 페이지는 동작 하나의 실제 소재와 결과를 보여주며 새 캐릭터의 전체 첫 제작 절차는 아닙니다. 메인 안내에서 자세와 동작을 선택해 시작하세요. 선택한 자세마다 Idle이 포함됩니다.
+
+원본 영상, 정리 전후 프레임과 최종 결과를 비교하고 실제 소재와 프롬프트를 내려받을 수 있습니다.
+
+서 있는 캔버스에 실제 검을 추가한 뒤 영상을 생성한 예제입니다. 아래 참조에는 검이 없고 영상 입력에는 검이 있습니다.
 
 ## 1. 캐릭터 참조
 
-![Reference](images/character-reference.png)
+<p><img src="images/character-reference.png" alt="Character reference" width="400"></p>
 
-## 2. 서 있는 참조
+[PNG](images/character-reference.png)
 
-![Standing](images/standing-preview.png)
+## 2. 자세 참조
 
-[PNG](images/standing.png) · [Prompt](prompts/standing.txt)
+이 예제는 아래의 자연스러운 서 있는 참조를 사용합니다. 회색 배경과 노란 안내선은 확인용이며 투명 소재에는 포함되지 않습니다.
 
-## 3. 영상 입력 및 실제 무기
+![Stance reference](images/standing-preview.png)
 
-[원래 캔버스](images/pre-weapon-input.png) · [무기 추가 프롬프트](prompts/weapon-input.txt)
+[PNG](images/standing.png) · [실제 프롬프트](prompts/standing.txt)
+
+## 3. 영상 입력
+
+팔다리, 머리카락과 장비가 화면 밖으로 잘리지 않도록 움직일 공간을 확보합니다.
 
 ![Video input](images/video-input.png)
 
+[PNG](images/video-input.png)
+
+[소재 다운로드](images/pre-weapon-input.png) · [실제 프롬프트](prompts/weapon-input.txt)
+
 ## 4. 원본 영상
 
-1152×896 · 24 FPS · 124 frames · 5.17 s
+![Source video preview](video/source-preview.gif)
 
-![Source preview](video/source-preview.gif)
+[MP4](video/source.mp4) · [실제 프롬프트](prompts/video.txt)
 
-[MP4](video/source.mp4) · [Prompt](prompts/video.txt)
+## 5. 선택 프레임
 
-원본 영상과 실제 생성 프롬프트를 유지하며 아래 결과물은 현재 후반 처리로 만들었습니다.
+![Selected frames](images/selected-frames.png)
 
-## 5. 자동 구간 선택 및 샘플링
+## 6. 공통 자르기
 
-`paused` · 24–108 · 12 frames
+선택한 모든 프레임을 같은 범위로 잘라 동작 중 위치 관계를 유지합니다.
 
-`24, 32, 39, 47, 55, 62, 70, 77, 85, 93, 100, 108` (0-based source indices)
+![Shared crop](images/first-crop-sheet.png)
 
-![Selected source frames](images/selected-frames.png)
+## 7. 프레임 보정 및 배경 제거
 
-## 6. 첫 번째 공통 자르기
+동작 흐림과 부가 효과를 정리하고 배경을 제거합니다. 비교 이미지 위쪽은 처리 전, 아래쪽은 처리 후입니다.
 
-517×408 px / frame
+![Before and after](images/refine-comparison.png)
 
-![First shared crop](images/first-crop-sheet.png)
+![Refined frames](images/refined-sheet-preview.png)
 
-## 7. 프레임별 Refine 및 효과·배경 제거
+[실제 프롬프트](prompts/refine.txt)
 
-이미지 워크플로는 자세, 크기, 위치를 유지하며 동작 흐림을 보정하고 배경도 제거합니다. 위쪽은 첫 번째 공통 자르기, 아래쪽은 이미지 워크플로의 원본 출력입니다.
+## 8. 투명 가장자리 정리 및 결과물
 
-[실제 Refine 프롬프트](prompts/refine.txt)
+투명 가장자리를 정리한 다음 모든 프레임의 캐릭터 범위로 다시 공통 자르기합니다. 체크무늬는 투명 영역을 보여주는 미리보기 배경입니다.
 
-![Source and refined comparison](images/refine-comparison.png)
+![Edge cleanup and crop](images/alpha-comparison.png)
 
-![Raw refined frames](images/refined-sheet-preview.png)
-
-## 8. Alpha 정리, 두 번째 공통 자르기 및 전달
-
-Alpha가 8 미만인 값만 0으로 만들고 나머지 반투명 가장자리는 유지합니다. 모든 프레임을 공통 범위로 다시 자르고 하단에 투명 여백 1 px을 남깁니다. 체크무늬는 미리보기 전용입니다.
-
-![Alpha and second crop comparison](images/alpha-comparison.png)
-
-| 프레임 수 | 셀 크기 | 배치 | 시트 | 재생 시간 |
+| 프레임 수 | 셀 | 배치 | 시트 | 재생 시간 |
 | --- | --- | --- | --- | --- |
 | 12 | 347×340 | 6×2 | 2082×680 | 1.2 s |
 
-![Final spritesheet](images/spritesheet-preview.png)
+![Spritesheet](images/spritesheet-preview.png)
 
-![Animation](result/preview.gif)
+![Animation preview](result/preview.gif)
 
 [PNG](result/spritesheet.png) · [GIF](result/preview.gif) · [JSON](result/animation.json) · [전체 소재 ZIP](sword-complete.zip)
 
-[Workflow / validation](../../references/spritesheet.md)
-
-ZIP에는 원본 영상, 모든 원본 프레임, 선택 프레임, 자른 프레임, 워크플로 입력, 원본 Refine 출력, 최종 프레임, 프롬프트, PNG／GIF／JSON이 포함됩니다.
+ZIP에는 캐릭터 참조, 영상 입력, 원본 영상, 단계별 프레임, 실제 프롬프트, PNG／GIF／JSON 결과물이 포함됩니다.

@@ -1,105 +1,75 @@
-# パンチ攻撃：停止を伴うループ
+# パンチ攻撃：開始姿勢に戻る動作
 
 [繁體中文](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [English](README.en.md)
 
-[← インストールと使い方](../../README.ja.md)
+[← README](../../README.ja.md)
 
-立ち姿と演出用キャンバスを再利用して動画を生成します。自動選択と共通クロップ後、各フレームを Refine してエフェクトと背景を除去し、Alpha 整理と再共通クロップを経て統合します。
+このページは 1 つの動作の実素材と成果を示し、新規キャラクターの初回制作全体を説明するものではありません。制作はメインガイドの姿勢・動作選択から始めます。各姿勢には Idle が含まれます。
 
-<table><tr><th>キャラクター参考画像</th><th>透過成果物</th></tr><tr><td align="center"><img src="images/character-reference.png" alt="reference" height="300"></td><td align="center"><img src="result/preview.gif" alt="preview" height="245"></td></tr></table>
+元動画、整理前後のフレーム、最終成果を比較し、実素材とプロンプトをダウンロードできます。
 
-> 右向きのパンチ攻撃。最後は戦闘の構えに戻る。キャラクター基準サイズは 256×256。
+## 1. キャラクター参考画像
 
-動画には MiniMax H3、画像には Qwen Image 2.1 を使用しました。以下は実際に使った素材とプロンプトです。
+<p><img src="images/character-reference.png" alt="Character reference" width="400"></p>
 
-## 1. 参考画像をアップロード
+[PNG](images/character-reference.png)
 
-**利用者**が画像と要望を渡します。**Codex**は、遠近感と動きのある宣伝イラストのため、全身の自然な立ち姿を先に用意すると判断します。
+## 2. 姿勢参考
 
-<p align="center"><img src="images/character-reference.png" alt="character-reference" width="400"></p>
+本例では以下の自然な立ち姿を使用しています。グレー背景と黄色の枠は確認用で、透過素材には含まれません。
 
-[元画像](images/character-reference.png)
+![Stance reference](images/standing-preview.png)
 
-## 2. 自然な立ち姿と固定位置を確立
+[PNG](images/standing.png) · [実際のプロンプト](prompts/standing.txt)
 
-**ComfyUI**が立ち姿を作成し、**Python**が短辺の 3% の内側余白を設けます。参考画像は **1024×1536、余白 31 px**。動作用キャンバスでは足元を水平アンカーと下端基準にして、髪や帯で身体の位置がずれないようにします。**Codex**が確認用に表示します。
+## 3. 動画入力画像
 
-<p align="center"><img src="images/standing-preview.png" alt="standing-preview" width="900"></p>
+手足、髪、装備が画面外に出にくいよう、動作のための余白を確保します。
 
-左は実際の透過 PNG、右は確認用のグレー背景と黄色い余白ガイドです。背景と枠は原本に入りません。共用画像内の表記は繁体字中国語です。
+![Video input](images/video-input.png)
 
-[透過立ち姿](images/standing.png) · [立ち姿プロンプト](prompts/standing.txt)
+[PNG](images/video-input.png)
 
-## 3. 動画入力キャンバスを直接作成
+## 4. 元動画
 
-**動作用キャンバスは手足、髪、装飾が動く空間を確保し、見切れを減らします。** **Python**が固定アンカーで立ち姿を配置し、画素数予算に合わせてスケールを決め、寸法の倍数制約に合わせます。納品時は動作全体を共通範囲で切り抜きます。
+![Source video preview](video/source-preview.gif)
 
-<p align="center"><img src="images/video-input.png" alt="video-input" width="640"></p>
+[MP4](video/source.mp4) · [実際のプロンプト](prompts/video.txt)
 
-| 項目 | 実測値 |
-| --- | --- |
-| 目標基準枠 | 256×256 |
-| 生成キャンバス | 1152×896 |
-| 背景 | 単色グレー RGB（128, 128, 128） |
-| 画素数 | 寸法補正前 998,280、補正後 1,032,192。余白による少量の超過を許容 |
-| 共通の縮小倍率 | 256÷564 ≈ 0.453901 |
+## 5. 選択フレーム
 
-[実際の入力画像](images/video-input.png)
+![Selected frames](images/selected-frames.png)
 
-## 4. 立ち姿から目標動作を生成
+## 6. 共通切り抜き
 
-**Codex**が立ち姿から構えに移り、動作するプロンプトを作成します。**Python**が送信、ローカルでの待機、取得を担当し、**ComfyUI**が動画を生成します。
+全選択フレームを共通範囲で切り抜き、動作中の位置関係を保ちます。
 
-実際の動画では連続してパンチした後に構えに戻ります。成果物は選択区間の実際の動きを保持しています。
+![Shared crop](images/first-crop-sheet.png)
 
-<p align="center"><img src="video/source-preview.gif" alt="source-preview" width="576"></p>
+## 7. フレームの修整と背景除去
 
-元動画：**1152×896、24 FPS、107 フレーム、約 4.46 秒**。GIF はウェブ用プレビューで、MP4 は元の解像度を保持します。
+動きのぼけ、不要な効果、背景を整理します。比較画像の上段が処理前、下段が処理後です。
 
-[MP4 を表示・取得](video/source.mp4) · [動画プロンプト](prompts/video.txt)
+![Before and after](images/refine-comparison.png)
 
-元動画と実際の生成プロンプトはそのまま保持し、以下の成果物は現在の後段処理で作成しています。
+![Refined frames](images/refined-sheet-preview.png)
 
-## 5. 自動区間選択とサンプリング
+[実際のプロンプト](prompts/refine.txt)
 
-`paused` · 48–94 · 12 frames
+## 8. 透過の縁の整理と成果物
 
-`48, 52, 56, 61, 65, 69, 73, 77, 81, 86, 90, 94` (0-based source indices)
+透過の縁を整理し、全フレームのキャラクター範囲で再び共通切り抜きします。市松模様は透明部分を示すプレビュー背景です。
 
-![Selected source frames](images/selected-frames.png)
+![Edge cleanup and crop](images/alpha-comparison.png)
 
-## 6. 最初の共通クロップ
-
-217×245 px / frame
-
-![First shared crop](images/first-crop-sheet.png)
-
-## 7. 各フレームの Refine・エフェクト除去・背景除去
-
-画像ワークフローは姿勢・大きさ・位置を維持し、動きのぼけを修復して背景も除去します。上段は最初の共通クロップ、下段は画像ワークフローの未加工出力です。
-
-[実際の Refine プロンプト](prompts/refine.txt)
-
-![Source and refined comparison](images/refine-comparison.png)
-
-![Raw refined frames](images/refined-sheet-preview.png)
-
-## 8. Alpha 整理・再共通クロップ・納品
-
-Alpha が 8 未満の値のみ 0 にし、他の半透明の縁は維持します。全フレームで共通範囲を再クロップし、下端に透明な 1 px を残します。市松模様はプレビュー専用です。
-
-![Alpha and second crop comparison](images/alpha-comparison.png)
-
-| フレーム数 | セルサイズ | 配置 | シート | 再生時間 |
+| フレーム数 | セル | 配置 | シート | 再生時間 |
 | --- | --- | --- | --- | --- |
 | 12 | 217×245 | 6×2 | 1302×490 | 0.8 s |
 
-![Final spritesheet](images/spritesheet-preview.png)
+![Spritesheet](images/spritesheet-preview.png)
 
-![Animation](result/preview.gif)
+![Animation preview](result/preview.gif)
 
 [PNG](result/spritesheet.png) · [GIF](result/preview.gif) · [JSON](result/animation.json) · [全素材 ZIP](attack-complete.zip)
 
-[Workflow / validation](../../references/spritesheet.md)
-
-ZIP には元動画、全元フレーム、選択フレーム、クロップ画像、ワークフロー入力、未加工の Refine 出力、最終フレーム、プロンプト、PNG／GIF／JSON を含みます。
+ZIP にはキャラクター参考、動画入力、元動画、各段階のフレーム、実際のプロンプト、PNG／GIF／JSON 成果物が含まれます。

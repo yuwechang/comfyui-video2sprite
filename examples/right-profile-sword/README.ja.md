@@ -4,74 +4,76 @@
 
 [← README](../../README.ja.md)
 
-同じ立ち姿のキャンバスに実体の剣を追加してから剣攻撃の動画を生成します。立ち姿の参照画像には剣がなく、動画の入力画像には剣があります。
+このページは 1 つの動作の実素材と成果を示し、新規キャラクターの初回制作全体を説明するものではありません。制作はメインガイドの姿勢・動作選択から始めます。各姿勢には Idle が含まれます。
+
+元動画、整理前後のフレーム、最終成果を比較し、実素材とプロンプトをダウンロードできます。
+
+立ち姿のキャンバスに実体の剣を追加して動画を生成した例です。下の参照には剣がなく、動画入力には剣があります。
 
 ## 1. キャラクター参考画像
 
-![Reference](images/character-reference.png)
+<p><img src="images/character-reference.png" alt="Character reference" width="400"></p>
 
-## 2. 立ち姿の参照
+[PNG](images/character-reference.png)
 
-![Standing](images/standing-preview.png)
+## 2. 姿勢参考
 
-[PNG](images/standing.png) · [Prompt](prompts/standing.txt)
+本例では以下の自然な立ち姿を使用しています。グレー背景と黄色の枠は確認用で、透過素材には含まれません。
 
-## 3. 動画入力と実体の武器
+![Stance reference](images/standing-preview.png)
 
-[元のキャンバス](images/pre-weapon-input.png) · [武器追加プロンプト](prompts/weapon-input.txt)
+[PNG](images/standing.png) · [実際のプロンプト](prompts/standing.txt)
+
+## 3. 動画入力画像
+
+手足、髪、装備が画面外に出にくいよう、動作のための余白を確保します。
 
 ![Video input](images/video-input.png)
 
+[PNG](images/video-input.png)
+
+[素材ダウンロード](images/pre-weapon-input.png) · [実際のプロンプト](prompts/weapon-input.txt)
+
 ## 4. 元動画
 
-1152×896 · 24 FPS · 124 frames · 5.17 s
+![Source video preview](video/source-preview.gif)
 
-![Source preview](video/source-preview.gif)
+[MP4](video/source.mp4) · [実際のプロンプト](prompts/video.txt)
 
-[MP4](video/source.mp4) · [Prompt](prompts/video.txt)
+## 5. 選択フレーム
 
-元動画と実際の生成プロンプトはそのまま保持し、以下の成果物は現在の後段処理で作成しています。
+![Selected frames](images/selected-frames.png)
 
-## 5. 自動区間選択とサンプリング
+## 6. 共通切り抜き
 
-`paused` · 24–108 · 12 frames
+全選択フレームを共通範囲で切り抜き、動作中の位置関係を保ちます。
 
-`24, 32, 39, 47, 55, 62, 70, 77, 85, 93, 100, 108` (0-based source indices)
+![Shared crop](images/first-crop-sheet.png)
 
-![Selected source frames](images/selected-frames.png)
+## 7. フレームの修整と背景除去
 
-## 6. 最初の共通クロップ
+動きのぼけ、不要な効果、背景を整理します。比較画像の上段が処理前、下段が処理後です。
 
-517×408 px / frame
+![Before and after](images/refine-comparison.png)
 
-![First shared crop](images/first-crop-sheet.png)
+![Refined frames](images/refined-sheet-preview.png)
 
-## 7. 各フレームの Refine・エフェクト除去・背景除去
+[実際のプロンプト](prompts/refine.txt)
 
-画像ワークフローは姿勢・大きさ・位置を維持し、動きのぼけを修復して背景も除去します。上段は最初の共通クロップ、下段は画像ワークフローの未加工出力です。
+## 8. 透過の縁の整理と成果物
 
-[実際の Refine プロンプト](prompts/refine.txt)
+透過の縁を整理し、全フレームのキャラクター範囲で再び共通切り抜きします。市松模様は透明部分を示すプレビュー背景です。
 
-![Source and refined comparison](images/refine-comparison.png)
+![Edge cleanup and crop](images/alpha-comparison.png)
 
-![Raw refined frames](images/refined-sheet-preview.png)
-
-## 8. Alpha 整理・再共通クロップ・納品
-
-Alpha が 8 未満の値のみ 0 にし、他の半透明の縁は維持します。全フレームで共通範囲を再クロップし、下端に透明な 1 px を残します。市松模様はプレビュー専用です。
-
-![Alpha and second crop comparison](images/alpha-comparison.png)
-
-| フレーム数 | セルサイズ | 配置 | シート | 再生時間 |
+| フレーム数 | セル | 配置 | シート | 再生時間 |
 | --- | --- | --- | --- | --- |
 | 12 | 347×340 | 6×2 | 2082×680 | 1.2 s |
 
-![Final spritesheet](images/spritesheet-preview.png)
+![Spritesheet](images/spritesheet-preview.png)
 
-![Animation](result/preview.gif)
+![Animation preview](result/preview.gif)
 
 [PNG](result/spritesheet.png) · [GIF](result/preview.gif) · [JSON](result/animation.json) · [全素材 ZIP](sword-complete.zip)
 
-[Workflow / validation](../../references/spritesheet.md)
-
-ZIP には元動画、全元フレーム、選択フレーム、クロップ画像、ワークフロー入力、未加工の Refine 出力、最終フレーム、プロンプト、PNG／GIF／JSON を含みます。
+ZIP にはキャラクター参考、動画入力、元動画、各段階のフレーム、実際のプロンプト、PNG／GIF／JSON 成果物が含まれます。

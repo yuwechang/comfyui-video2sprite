@@ -4,74 +4,76 @@
 
 [← README](../../README.en.md)
 
-A physical sword is added to the same standing canvas before generating the sword action. The standing reference has no sword; the actual video input includes it.
+This page shows the actual assets and results for one action, rather than the complete first-use procedure for a new character. Follow the main guide to choose stances and actions; each selected stance includes Idle.
+
+Compare the source video, frame cleanup and final results below, and download the actual assets and prompts.
+
+A physical sword is added to the standing canvas before generating the action. The reference below has no sword; the actual video input includes it.
 
 ## 1. Character reference
 
-![Reference](images/character-reference.png)
+<p><img src="images/character-reference.png" alt="Character reference" width="400"></p>
 
-## 2. Standing reference
+[PNG](images/character-reference.png)
 
-![Standing](images/standing-preview.png)
+## 2. Stance reference
 
-[PNG](images/standing.png) · [Prompt](prompts/standing.txt)
+This example uses the natural standing reference below. Gray backgrounds and yellow guides are review overlays, not part of the transparent asset.
 
-## 3. Video input + physical weapon
+![Stance reference](images/standing-preview.png)
 
-[Base canvas](images/pre-weapon-input.png) · [Weapon edit prompt](prompts/weapon-input.txt)
+[PNG](images/standing.png) · [Actual prompt](prompts/standing.txt)
+
+## 3. Video input
+
+Space around the character accommodates movement and reduces clipping of limbs, hair and equipment.
 
 ![Video input](images/video-input.png)
 
+[PNG](images/video-input.png)
+
+[Download assets](images/pre-weapon-input.png) · [Actual prompt](prompts/weapon-input.txt)
+
 ## 4. Source video
 
-1152×896 · 24 FPS · 124 frames · 5.17 s
+![Source video preview](video/source-preview.gif)
 
-![Source preview](video/source-preview.gif)
+[MP4](video/source.mp4) · [Actual prompt](prompts/video.txt)
 
-[MP4](video/source.mp4) · [Prompt](prompts/video.txt)
+## 5. Selected frames
 
-The source video and its actual generation prompts are retained. The results below were processed with the current backend.
+![Selected frames](images/selected-frames.png)
 
-## 5. Automatic selection and sampling
+## 6. Shared crop
 
-`paused` · 24–108 · 12 frames
+All selected frames use the same crop, preserving their relative placement throughout the action.
 
-`24, 32, 39, 47, 55, 62, 70, 77, 85, 93, 100, 108` (0-based source indices)
+![Shared crop](images/first-crop-sheet.png)
 
-![Selected source frames](images/selected-frames.png)
+## 7. Frame refinement and background removal
 
-## 6. First shared crop
+Repair motion blur, remove incidental effects and remove the background. The comparison shows frames before cleanup above and after cleanup below.
 
-517×408 px / frame
+![Before and after](images/refine-comparison.png)
 
-![First shared crop](images/first-crop-sheet.png)
+![Refined frames](images/refined-sheet-preview.png)
 
-## 7. Per-frame Refine, effect and background removal
+[Actual prompt](prompts/refine.txt)
 
-The image workflow preserves pose, scale and position while repairing motion blur and removing the background. Top: first shared crop. Bottom: raw image-workflow output.
+## 8. Transparent edges and final results
 
-[Actual Refine prompt](prompts/refine.txt)
+After cleaning the transparent edges, all frames share another crop around the character. Checkerboards are preview backgrounds for transparent areas.
 
-![Source and refined comparison](images/refine-comparison.png)
-
-![Raw refined frames](images/refined-sheet-preview.png)
-
-## 8. Alpha cleanup, second shared crop and delivery
-
-Alpha values below 8 become 0; other translucent edges remain. All frames share a second crop with 1 px of transparent bottom padding. Checkerboards are preview backgrounds only.
-
-![Alpha and second crop comparison](images/alpha-comparison.png)
+![Edge cleanup and crop](images/alpha-comparison.png)
 
 | Frames | Cell | Grid | Sheet | Duration |
 | --- | --- | --- | --- | --- |
 | 12 | 347×340 | 6×2 | 2082×680 | 1.2 s |
 
-![Final spritesheet](images/spritesheet-preview.png)
+![Spritesheet](images/spritesheet-preview.png)
 
-![Animation](result/preview.gif)
+![Animation preview](result/preview.gif)
 
 [PNG](result/spritesheet.png) · [GIF](result/preview.gif) · [JSON](result/animation.json) · [Complete asset bundle](sword-complete.zip)
 
-[Workflow / validation](../../references/spritesheet.md)
-
-ZIP: source video, all source frames, selected frames, cropped frames, workflow inputs, raw refined frames, final frames, prompts, PNG / GIF / JSON.
+The bundle includes character references, video input, source video, frames from each stage, actual prompts, and final PNG / GIF / JSON files.

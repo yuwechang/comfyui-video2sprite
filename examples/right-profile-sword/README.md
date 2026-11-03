@@ -4,74 +4,76 @@
 
 [← README](../../README.md)
 
-以同一角色站立版面加入實體劍，再生成揮劍影片。站立參考圖尚未加入武器；實際影片輸入圖包含武器。
+本頁展示單一動作的實際素材與處理成果，不是新角色首次製作的完整操作步驟。開始製作請依主說明選擇姿態與動作；每個姿態都包含 Idle。
+
+下方可比較來源影片、影格清理前後及最終成果，並下載實際素材與提示詞。
+
+本例先在站立版面加入實體劍，再生成揮劍影片；下方參考圖尚未持劍，影片輸入圖已包含劍。
 
 ## 1. 角色參考圖
 
-![Reference](images/character-reference.png)
+<p><img src="images/character-reference.png" alt="Character reference" width="400"></p>
 
-## 2. 自然站立參考
+[PNG](images/character-reference.png)
 
-![Standing](images/standing-preview.png)
+## 2. 姿態參考
 
-[PNG](images/standing.png) · [Prompt](prompts/standing.txt)
+本例使用下方的自然站立參考；灰底與黃色框線只是確認用的預覽，不會畫入透明素材。
 
-## 3. 影片輸入與實體武器
+![Stance reference](images/standing-preview.png)
 
-[原始版面](images/pre-weapon-input.png) · [加入武器提示詞](prompts/weapon-input.txt)
+[PNG](images/standing.png) · [實際提示詞](prompts/standing.txt)
+
+## 3. 影片輸入圖
+
+為角色預留動作空間，降低四肢、頭髮或裝備超出畫面的機會。
 
 ![Video input](images/video-input.png)
 
+[PNG](images/video-input.png)
+
+[下載素材](images/pre-weapon-input.png) · [實際提示詞](prompts/weapon-input.txt)
+
 ## 4. 來源影片
 
-1152×896 · 24 FPS · 124 frames · 5.17 s
+![Source video preview](video/source-preview.gif)
 
-![Source preview](video/source-preview.gif)
+[MP4](video/source.mp4) · [實際提示詞](prompts/video.txt)
 
-[MP4](video/source.mp4) · [Prompt](prompts/video.txt)
+## 5. 選中的影格
 
-來源影片與實際生成提示詞保留原樣；以下成品以目前後段流程重新處理。
+![Selected frames](images/selected-frames.png)
 
-## 5. 自動選段與取樣
+## 6. 共同裁切
 
-`paused` · 24–108 · 12 frames
+所有選中影格使用相同範圍裁切，保留角色動作中的位置關係。
 
-`24, 32, 39, 47, 55, 62, 70, 77, 85, 93, 100, 108` (0-based source indices)
+![Shared crop](images/first-crop-sheet.png)
 
-![Selected source frames](images/selected-frames.png)
+## 7. 影格修整與去背
 
-## 6. 第一次共同裁切
+修復動態模糊、清理多餘效果並移除背景。比較圖上排為清理前，下排為清理後。
 
-517×408 px / frame
+![Before and after](images/refine-comparison.png)
 
-![First shared crop](images/first-crop-sheet.png)
+![Refined frames](images/refined-sheet-preview.png)
 
-## 7. 逐張 Refine、去特效與去背
+[實際提示詞](prompts/refine.txt)
 
-逐張圖片工作流保留姿勢、尺度與位置，修復動態模糊並同時清理背景。上排為第一次共同裁切，下排為圖片工作流的原始輸出。
+## 8. 透明邊緣整理與成品
 
-[實際 Refine 提示詞](prompts/refine.txt)
+整理透明邊緣後，依全部影格的角色範圍再次共同裁切。棋盤格只是顯示透明區域的預覽背景。
 
-![Source and refined comparison](images/refine-comparison.png)
-
-![Raw refined frames](images/refined-sheet-preview.png)
-
-## 8. Alpha 清理、再次共同裁切與交付
-
-僅將 Alpha 小於 8 的值清為 0，保留其餘半透明邊緣；依全部影格共同裁切，底部保留 1 px 透明留白。棋盤格僅供預覽。
-
-![Alpha and second crop comparison](images/alpha-comparison.png)
+![Edge cleanup and crop](images/alpha-comparison.png)
 
 | 影格數 | 單格尺寸 | 排列 | 影格表 | 播放時間 |
 | --- | --- | --- | --- | --- |
 | 12 | 347×340 | 6×2 | 2082×680 | 1.2 s |
 
-![Final spritesheet](images/spritesheet-preview.png)
+![Spritesheet](images/spritesheet-preview.png)
 
-![Animation](result/preview.gif)
+![Animation preview](result/preview.gif)
 
 [PNG](result/spritesheet.png) · [GIF](result/preview.gif) · [JSON](result/animation.json) · [完整素材包](sword-complete.zip)
 
-[Workflow / validation](../../references/spritesheet.md)
-
-完整 ZIP 包含來源影片、全部來源影格、選中影格、裁切影格、工作流輸入、原始 Refine 輸出、最終影格、提示詞，以及 PNG／GIF／JSON。
+素材包包含角色參考、影片輸入、來源影片、各階段影格、實際提示詞與 PNG／GIF／JSON 成品。

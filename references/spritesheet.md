@@ -4,21 +4,23 @@
 
 本段只需要來源影片、圖片工作流設定、Refine 提示詞與明確處理參數，可直接處理使用者提供的影片，不讀取前段的角色版面、生成提示詞或內部設定。先檢視來源區段，確認角色與裝備的完整內容仍可辨識；半透明效果覆蓋不直接判定失敗，但被強光或不透明效果完全取代的內容不保證能重建。遇到這種影格，選擇其他完整區間或回報需要替換來源，不在後段重新設計角色或生成動作。
 
-Codex 依演出接點是否停頓及首尾能否銜接，指定 `--motion-type`：
+Codex 依動作完成後的行為指定 `--motion-type`。這三種類型描述動作內容，與 GIF 預覽是否重播無關：
 
-| 類型 | 參數 | 自動選段 |
+| 類型 | 參數／英文名稱 | 定義與自動選段 |
 | --- | --- | --- |
-| 連續循環 | `continuous` | 找近似首尾，取頭至尾−1，接點不停頓 |
-| 非連續循環 | `paused` | 找近似起手與回復姿態，取頭至尾，保留接點停頓 |
-| 不可循環 | `once` | 先找末端穩定段，再向前找最後一段起始穩定段，取頭至尾 |
+| 循環動作 | `loop` / Loop | 動作末尾直接銜接開頭，可持續重播。找近似首尾，取頭至尾−1，省略重複尾格。 |
+| 返回起始動作 | `return_to_start` / Return to start | 從指定起始基準出發，完成一次動作後回到同一基準；每次觸發播放一次，可再次觸發。找近似起手與回復姿態，取頭至尾，保留兩端。 |
+| 保持結束姿態動作 | `hold_end_pose` / Hold end pose | 完成一次動作後保持目標結束姿態，不要求返回起始基準。先找末端穩定段，再向前找最後一段起始穩定段，取頭至尾。 |
 
-Python 使用低解析度影格比較姿勢、運動與穩定程度，不依賴前端設定或動作名稱。不可循環頭取起始穩定段最後一格，尾取末端穩定段第一格；排除自然站立與姿態轉換。循環需包含實際運動，不能把靜止片段當成循環。
+可再次觸發不等於自動循環播放。「起始基準」由明確的動作環境決定：地面使用對應 Idle，空中使用對應空中姿態；不是固定取來源影片第 0 格。來源完整演出的開頭也不等於每段交付片段的開頭。`hold_end_pose` 保留完整動作與穩定結束姿態，不要求在影格表中複製多張末幀來模擬停留。
+
+Python 使用低解析度影格比較姿勢、運動與穩定程度，不依賴前端設定或動作名稱。保持結束姿態動作頭取起始穩定段最後一格，尾取末端穩定段第一格；排除自然站立與姿態轉換。循環需包含實際運動，不能把靜止片段當成循環。
 
 ```text
-python scripts/finish_animation.py source.mp4 --motion-type continuous --scale 0.5 --image-profile .local/image-profile.json --job work/action/finish-job --output outputs/action --prompt-file work/action/refine.txt --count 8 --seconds 0.8
+python scripts/finish_animation.py source.mp4 --motion-type loop --scale 0.5 --image-profile .local/image-profile.json --job work/action/finish-job --output outputs/action --prompt-file work/action/refine.txt --count 8 --seconds 0.8
 ```
 
-自動選段資料存入工作目錄 `auto-segment.json`。無明確結果時，Codex 檢視影片，明確傳入 `--start`、`--end` 覆寫區間，不固定排除幾秒。兩者均為從 0 起算且包含 end 的影格編號。程式在區間內等距選出所需張數；連續循環省略重複尾格，其餘保留兩端。GIF 預覽一律自動重播。
+自動選段資料存入工作目錄 `auto-segment.json`。無明確結果時，Codex 檢視影片，明確傳入 `--start`、`--end` 覆寫區間，不固定排除幾秒。兩者均為從 0 起算且包含 end 的影格編號。程式在區間內等距選出所需張數；循環動作省略重複尾格，其餘保留兩端。GIF 預覽無論動作類型一律無限重播；JSON 的 `loop` 布林值描述循環選段方式，不控制 GIF 播放。手動指定區間且未提供 `--motion-type` 時，`--loop` 只控制循環取樣，也不控制 GIF 播放。
 
 `--scale` 預設 1，是所有選中影格的統一縮回倍率。後端不讀取前端基準框、站姿或留白設定。使用者直接提供影片而需要限制交付格子大小時，可另用 `--max-side`；按既定角色尺度縮回時省略它。
 
@@ -46,4 +48,14 @@ Codex 最後對照選中來源、原始 Refine 及 Alpha 清理後成品，確�
 
 多個動作各自選區間、計算裁切框，使用獨立工作目錄與輸出目錄執行完整流程。每個動作各交付一張透明影格表與一張透明 GIF。
 
-交付時以 `scripts/package_delivery.py --manifest assets.json --output delivery.zip` 打包；清單明確提供 `video`、`animation`（成品 JSON）及 `files`（封存內相對路徑對應素材路徑）。收集上傳圖、站立參考、影片輸入與實際使用的提示詞，程式匯出全部與選中原始影格，並自動封存第一次裁切影格、逐張工作流輸入、Refine 透明影格、最終裁切影格及成品。實際 Refine 提示詞需由 `files` 明確收錄，例如 `"prompts/refine.txt": "work/action/refine.txt"`。只收集實際使用的素材，不猜前端目錄。聊天中直接展示 GIF 與透明影格表，附 ZIP 下載。
+交付時以 `scripts/package_delivery.py --manifest assets.json --output delivery.zip` 打包；清單明確提供 `video`、`animation`（成品 JSON）及 `files`（封存內相對路徑對應素材路徑）。收集上傳圖、實際使用的姿態參考及 Idle 基準影格、影片輸入與提示詞，程式匯出全部與選中原始影格，並自動封存第一次裁切影格、逐張工作流輸入、Refine 透明影格、最終裁切影格及成品。實際 Refine 提示詞需由 `files` 明確收錄，例如 `"prompts/refine.txt": "work/action/refine.txt"`。只收集實際使用的素材，不猜前端目錄。聊天中直接展示 GIF 與透明影格表，附 ZIP 下載。
+
+## 完成與交付驗證
+
+程式回報成功、檔案存在或 JSON 中的 `verified` 均不能單獨代表任務完成。Codex 須在標記 `completed` 前完成以下檢查：
+
+1. **格式與規格**：來源影片可讀，PNG、GIF、JSON 均可開啟；影格數、排列、格子尺寸、播放時間、動作類型及來源索引符合本次任務，JSON 路徑能解析到正確素材。PNG 有真正透明背景；GIF 預覽包含動作影格並設為無限重播，不可只播放一次。
+2. **視覺品質**：依上文對照選中的來源影格、原始 Refine 與最終影格，檢查動作完整性、角色及裝備保留、透明邊緣、尺度與位置；循環接點或動作結束方式符合所選類型。只針對選中影格檢視，不將整段影片的所有來源影格送去 Refine 或視覺逐幀判讀。
+3. **交付完整性**：確認 PNG、GIF、JSON、ZIP 實際存在且可供使用者取得；ZIP 可正常解壓，包含本任務實際使用的必要素材、提示詞與成品，封存內 JSON 路徑可使用。展示預覽並提供成品及 ZIP 的有效路徑或下載入口。
+
+程式負責可機械檢查的格式、尺寸、Alpha、時間與封存完整性；Codex 負責動作意圖、視覺品質及交付內容的確認。任一必要檢查失敗或尚未完成，保留 `needs_review` 並說明待處理項目，不以檔案存在代替完成。全部通過後，再由角色計畫的 `mark` 記錄完成；直接提供影片而沒有角色計畫時，仍遵守相同交付條件。

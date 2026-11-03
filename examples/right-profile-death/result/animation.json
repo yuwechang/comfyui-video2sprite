@@ -39,10 +39,10 @@
     896
   ],
   "frame_scale": 0.453900709219858,
-  "motion_type": "once",
+  "motion_type": "hold_end_pose",
   "automatic_selection": {
     "status": "selected",
-    "motion_type": "once",
+    "motion_type": "hold_end_pose",
     "start": 86,
     "end": 136,
     "matching_tail": 136,

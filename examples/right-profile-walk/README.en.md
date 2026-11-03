@@ -2,113 +2,74 @@
 
 [繁體中文](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [English](README.en.md)
 
-[← Installation and usage](../../README.en.md)
+[← README](../../README.en.md)
 
-Reuse the standing reference and performance canvas to generate a video. After selection and a shared crop, refine each frame and remove effects and background, then clean alpha, crop jointly again and pack the results.
+This page shows the actual assets and results for one action, rather than the complete first-use procedure for a new character. Follow the main guide to choose stances and actions; each selected stance includes Idle.
 
-<table>
-  <tr><th>Uploaded reference</th><th>Finished walking loop</th></tr>
-  <tr><td align="center"><img src="images/character-reference.png" alt="Character reference" height="300"></td><td align="center"><img src="result/preview.gif" alt="Transparent walking loop" height="247"><br>8 frames · 0.8 seconds · Transparent</td></tr>
-</table>
+Compare the source video, frame cleanup and final results below, and download the actual assets and prompts.
 
-> **Request:** A walking loop facing right in a strict side view, with a 256×256 character baseline.
+## 1. Character reference
 
-This example uses MiniMax H3 for video and Qwen Image 2.1 for images. All assets below come from the same grayscale-background workflow.
+<p><img src="images/character-reference.png" alt="Character reference" width="400"></p>
 
-## 1. Upload the character reference
+[PNG](images/character-reference.png)
 
-The **user** provides the image and request. **Codex** identifies that this promotional illustration has perspective and a dynamic pose, so it first needs a complete natural standing reference.
+## 2. Stance reference
 
-<p align="center"><img src="images/character-reference.png" alt="Uploaded character reference" height="440"></p>
+This example uses the natural standing reference below. Gray backgrounds and yellow guides are review overlays, not part of the transparent asset.
 
-[Download original](images/character-reference.png)
+![Stance reference](images/standing-preview.png)
 
-## 2. Establish the standing reference and fixed position
+[PNG](images/standing.png) · [Actual prompt](prompts/standing.txt)
 
-**ComfyUI** generates a natural standing pose in side view. **Python** applies an inset of 3% of the shorter side, establishes a horizontal ground anchor and bottom reference, and preserves scale. Hair and trailing fabric do not shift the body's standing position forward. **Codex** shows the result for approval.
+## 3. Video input
 
-<p align="center"><img src="images/standing-preview.png" alt="Left: actual transparent asset; right: gray background and yellow inset guide" width="900"></p>
+Space around the character accommodates movement and reduces clipping of limbs, hair and equipment.
 
-Original size: **1024×1536**, inset: **31 px**. The left side preserves transparency; the right-side gray background and yellow guide are only for review and are not drawn into the asset. Text inside this shared preview image is in Traditional Chinese.
+![Video input](images/video-input.png)
 
-[Transparent standing image](images/standing.png) · [Actual standing prompt](prompts/standing.txt)
+[PNG](images/video-input.png)
 
-**Reusable:** Other actions for this character can share the standing reference, scale, and position anchor.
+## 4. Source video
 
-## 3. Build the video input canvas directly
+![Source video preview](video/source-preview.gif)
 
-**The performance canvas reserves room for movement.** Limbs, hair, and accessories may extend beyond the standing silhouette. A video model may not fully obey instructions to stay in frame, so padding reduces the risk of clipping. Delivery uses a shared crop enclosing the complete action.
+[MP4](video/source.mp4) · [Actual prompt](prompts/video.txt)
 
-**Python** places the standing character on a grayscale canvas using the fixed anchor, adds padding, adjusts generation scale to the pixel budget, and pads to the workflow's dimension multiples.
+## 5. Selected frames
 
-<p align="center"><img src="images/video-input.png" alt="Actual grayscale standing canvas used for video generation" width="640"></p>
+![Selected frames](images/selected-frames.png)
 
-| Item | Actual value |
-| --- | --- |
-| Target character baseline | 256×256 |
-| Generation canvas | 1152×896; both dimensions are multiples of 32 |
-| Background | Solid gray RGB (146, 146, 146) |
-| Pixel budget | 998,280 before alignment; 1,032,192 after padding, allowing the small excess |
-| Uniform restoration scale | 256÷564, approximately 0.453901 |
+## 6. Shared crop
 
-[Download actual video input](images/video-input.png)
+All selected frames use the same crop, preserving their relative placement throughout the action.
 
-**Reusable:** Use this canvas with other action prompts, or test it yourself in ComfyUI.
+![Shared crop](images/first-crop-sheet.png)
 
-## 4. Generate the action from standing
+## 7. Frame refinement and background removal
 
-**Codex** describes the transition from standing into regular walking. **Python** submits the job, waits locally, and downloads the result. **ComfyUI** generates the transition and action.
+Repair motion blur, remove incidental effects and remove the background. The comparison shows frames before cleanup above and after cleanup below.
 
-<p align="center"><img src="video/source-preview.gif" alt="Source video preview: standing to walking" width="576"></p>
+![Before and after](images/refine-comparison.png)
 
-Source: **1152×896, 24 FPS, 107 frames, approximately 4.46 seconds**. This GIF is a webpage preview; the original video retains full resolution.
+![Refined frames](images/refined-sheet-preview.png)
 
-[Watch/download MP4](video/source.mp4) · [Actual video prompt](prompts/video.txt)
+[Actual prompt](prompts/refine.txt)
 
-**Reusable:** Reselect intervals or frames and change delivery playback timing without generating another video.
+## 8. Transparent edges and final results
 
-The source video and its actual generation prompts are retained. The results below were processed with the current backend.
+After cleaning the transparent edges, all frames share another crop around the character. Checkerboards are preview backgrounds for transparent areas.
 
-## 5. Automatic selection and sampling
-
-`continuous` · 70–103 · 8 frames
-
-`70, 74, 78, 83, 87, 91, 96, 100` (0-based source indices)
-
-![Selected source frames](images/selected-frames.png)
-
-## 6. First shared crop
-
-155×246 px / frame
-
-![First shared crop](images/first-crop-sheet.png)
-
-## 7. Per-frame Refine, effect and background removal
-
-The image workflow preserves pose, scale and position while repairing motion blur and removing the background. Top: first shared crop. Bottom: raw image-workflow output.
-
-[Actual Refine prompt](prompts/refine.txt)
-
-![Source and refined comparison](images/refine-comparison.png)
-
-![Raw refined frames](images/refined-sheet-preview.png)
-
-## 8. Alpha cleanup, second shared crop and delivery
-
-Alpha values below 8 become 0; other translucent edges remain. All frames share a second crop with 1 px of transparent bottom padding. Checkerboards are preview backgrounds only.
-
-![Alpha and second crop comparison](images/alpha-comparison.png)
+![Edge cleanup and crop](images/alpha-comparison.png)
 
 | Frames | Cell | Grid | Sheet | Duration |
 | --- | --- | --- | --- | --- |
 | 8 | 155×247 | 4×2 | 620×494 | 0.8 s |
 
-![Final spritesheet](images/spritesheet-preview.png)
+![Spritesheet](images/spritesheet-preview.png)
 
-![Animation](result/preview.gif)
+![Animation preview](result/preview.gif)
 
 [PNG](result/spritesheet.png) · [GIF](result/preview.gif) · [JSON](result/animation.json) · [Complete asset bundle](walk-complete.zip)
 
-[Workflow / validation](../../references/spritesheet.md)
-
-ZIP: source video, all source frames, selected frames, cropped frames, workflow inputs, raw refined frames, final frames, prompts, PNG / GIF / JSON.
+The bundle includes character references, video input, source video, frames from each stage, actual prompts, and final PNG / GIF / JSON files.

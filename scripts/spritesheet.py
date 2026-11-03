@@ -92,7 +92,9 @@ def frame_background(frame, tolerance):
     return list(colour)
 
 
-def crop_frames(frames, max_side=None, tolerance=32):
+def crop_frames(frames, max_side=None, tolerance=32, margin=0):
+    if type(margin) is not int or margin < 0:
+        raise ValueError('Crop margin must be a nonnegative integer')
     if not frames:
         raise ValueError('No selected frames')
     if max_side is not None and max_side < 2:
@@ -103,6 +105,9 @@ def crop_frames(frames, max_side=None, tolerance=32):
     backgrounds = [frame_background(frame, tolerance) for frame in frames]
     boxes = [content_bbox(frame, colour, tolerance) for frame, colour in zip(frames, backgrounds)]
     rect = common_crop(boxes, source_size[0])
+    if margin:
+        rect = [max(0, rect[0]-margin), max(0, rect[1]-margin),
+                min(source_size[0], rect[2]+margin), min(source_size[1], rect[3]+margin)]
     left, top, right, bottom = rect
     width, height = right - left, bottom - top
     scale = min(1, max_side / width, (max_side - 1) / height) if max_side is not None else 1
@@ -142,7 +147,9 @@ def prepare(video, output, max_side, count, start, end, seconds, loop, tolerance
     folder.mkdir(parents=True, exist_ok=True)
     automatic = None
     if motion_type is not None:
-        loop = motion_type == 'continuous'
+        if motion_type not in ('loop', 'return_to_start', 'hold_end_pose'):
+            raise ValueError('Unknown motion type')
+        loop = motion_type == 'loop'
     if start is None and end is None:
         if motion_type is None:
             raise ValueError('Provide a motion type for automatic selection, or both start and end')
@@ -155,21 +162,43 @@ def prepare(video, output, max_side, count, start, end, seconds, loop, tolerance
     elif start is None or end is None:
         raise ValueError('Manual selection requires both start and end')
     indices = sample_indices(start, end, count, loop)
+    frames = extract_frames(video, indices, folder)
+    return prepare_frames(frames, indices, folder, max_side, seconds, loop, tolerance, scale,
+                          motion_type, automatic)
+
+
+def extract_frames(video, indices, folder):
+    if not indices or indices != sorted(set(indices)) or any(type(i) is not int or i < 0 for i in indices):
+        raise ValueError('Frame indices must be sorted unique nonnegative integers')
+    folder = Path(folder)
+    folder.mkdir(parents=True, exist_ok=True)
     selection = '+'.join(f'eq(n\\,{index})' for index in indices)
     with tempfile.TemporaryDirectory(dir=folder) as tmp:
         subprocess.run(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-i', str(video),
                         '-vf', 'select=' + selection, '-fps_mode', 'vfr',
                         str(Path(tmp) / '%06d.png')], check=True)
         paths = sorted(Path(tmp).glob('*.png'))
-        if len(paths) != count:
+        if len(paths) != len(indices):
             raise ValueError('Video did not contain every requested frame')
         frames = []
         for path in paths:
             with Image.open(path) as source:
                 frames.append(source.convert('RGBA'))
+    return frames
+
+
+def prepare_frames(frames, indices, output, max_side, seconds, loop=False, tolerance=32,
+                   scale=1, motion_type=None, automatic=None, crop_margin=0):
+    """Common crop and persist already selected frames; does not select or generate frames."""
+    if not frames or len(frames) != len(indices):
+        raise ValueError('Selected frames and source indices must match')
+    count = len(frames)
+    timings(seconds, count)
+    folder = Path(output)
+    folder.mkdir(parents=True, exist_ok=True)
     original_size = list(frames[0].size)
     frames = scale_frames(frames, scale)
-    frames, crop_info = crop_frames(frames, max_side, tolerance)
+    frames, crop_info = crop_frames(frames, max_side, tolerance, crop_margin)
     inputs = []
     for i, frame in enumerate(frames):
         target = folder / 'cropped' / f'{i:03d}.png'
@@ -218,6 +247,8 @@ def finish(processed_sheet, report, output):
                     duration=durations, disposal=2, transparency=255,
                     background=255, optimize=False, loop=0)
     with Image.open(gif_path) as gif:
+        if gif.info.get('loop') != 0:
+            raise ValueError('GIF preview must repeat indefinitely')
         actual_duration = 0
         for i in range(gif.n_frames):
             gif.seek(i)
@@ -243,9 +274,10 @@ def main():
     parser.add_argument('--count', type=int, default=8)
     parser.add_argument('--start', type=int)
     parser.add_argument('--end', type=int)
-    parser.add_argument('--motion-type', choices=('continuous','paused','once'))
+    parser.add_argument('--motion-type', choices=('loop','return_to_start','hold_end_pose'))
     parser.add_argument('--seconds', type=float, required=True)
-    parser.add_argument('--loop', action='store_true')
+    parser.add_argument('--loop', action='store_true',
+                        help='Use loop sampling for manual intervals without --motion-type; GIF always repeats')
     args = parser.parse_args()
     result = prepare(args.video, args.output, args.max_side, args.count, args.start, args.end,
                      args.seconds, args.loop, args.background_tolerance, args.scale, args.motion_type)

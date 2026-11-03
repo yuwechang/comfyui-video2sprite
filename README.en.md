@@ -14,10 +14,16 @@ Codex interprets requests, writes prompts, and reviews results. Local Python han
   </tr>
 </table>
 
-- [Continuous loop: walking](examples/right-profile-walk/README.en.md)
-- [Loop with a pause: attack](examples/right-profile-attack/README.en.md)
-- [Non-looping action: death](examples/right-profile-death/README.en.md)
+- [Loop: walking](examples/right-profile-walk/README.en.md)
+- [Return to start: attack](examples/right-profile-attack/README.en.md)
+- [Hold end pose: death](examples/right-profile-death/README.en.md)
 - [Sword attack: preserve the physical weapon and remove incidental effects](examples/right-profile-sword/README.en.md)
+
+## Motion types
+
+- **Loop**: The end joins the beginning for continuous playback.
+- **Return to start**: Perform the action once and return to the same starting pose. Play once per trigger.
+- **Hold end pose**: Perform the action once and hold the target end pose.
 
 ![Per-frame processing](docs/images/pipeline-overview.png)
 
@@ -29,7 +35,7 @@ Follow the actual results from the standing reference and performance canvas thr
 Please install this Codex Skill: https://github.com/yuwechang/comfyui-video2sprite . Follow the repository's installation instructions to install it and check the environment. Ask me only when required information is missing.
 ```
 
-Codex follows the [installation and update instructions](references/install.md) to download the Skill and check Python packages and FFmpeg/ffprobe. If an external program is missing, it asks whether you want installation help. You do not need to copy folders, choose installation paths, or run Python yourself.
+Codex follows the installation and update instructions to download the Skill and check Python packages and FFmpeg/ffprobe. If an external program is missing, it asks whether you want installation help. You do not need to copy folders, choose installation paths, or run Python yourself.
 
 ## What you need
 
@@ -43,44 +49,56 @@ The Skill does not include models, nodes, FFmpeg, or ffprobe. Codex checks the e
 
 Tell Codex which working folder should hold your assets and results, and provide your workflow JSON files. It first tries `http://127.0.0.1:8188`, asks for another address only if that fails, then helps identify and save node mappings.
 
-Upload a character image and describe the action. When a standing reference needs confirmation, Codex displays it. If UI questions are available, you can answer with an option or free text.
+After setup, follow “Create an animation” below in a new chat. Codex collects necessary choices and shows the stance references for review.
 
-### Video workflow
-
-The workflow must expose image inputs, a positive prompt, width, height, video length, seed, and a downloadable video output. The purpose of each image input and whether the second image can be omitted are recorded in the mapping. Single-image generation uses the configured omission method.
-
-FPS, dimension multiples, valid frame counts, and ranges are also recorded. The default generation canvas budget is **1,000,000 pixels**, adjustable in local settings. Final padding to workflow dimension multiples may slightly exceed it. Usable resolution and duration depend on your hardware and workflow.
-
-### Image workflow
-
-The workflow must accept an image and editing prompt, save PNGs, and support standing-reference generation and per-frame refinement. Background removal is requested in the same editing prompt as refinement; a dedicated removal node is not required. During [initial setup](references/setup.md), verify actual transparency, unchanged dimensions and preserved character content. Record any input dimension multiples.
+Provide API workflows that can generate action videos from character images and edit images from text instructions with transparent PNG output. Codex helps check suitability. Supported resolution and video length depend on your hardware and workflows.
 
 This project's example uses **MiniMax H3** for video and **Qwen Image 2.1** for images. This is a tested combination, not a model restriction: the Skill connects through node mappings. You provide model weights, nodes, and API workflows; installing the Skill does not install them.
 
+
 ## Create an animation
 
-Upload a character image and tell Codex:
+After installing the Skill and configuring workflows, start a new chat, attach a character reference, and say:
 
-> Use comfyui-video2sprite to create a walking loop facing right in a strict side view, with a 256×256 character baseline.
+> Use `$comfyui-video2sprite` to create game animations for this character.
 
-If necessary, a natural standing reference is prepared for your confirmation. The standing canvas is used directly to generate the target action; Python excludes the posture transition and selects an interval automatically. The baseline establishes character scale. Final cells share a crop enclosing the complete action, so they may be rectangular or exceed the baseline when the character extends outward.
+**One character per chat.** Supplementary references for that character stay in the same chat; use a new chat for another character. Uploading an image alone does not start production.
+
+The initial request collects only two selections, without asking again for information already supplied:
+
+1. **Stances (multiple selections):** normal / combat. Combat means a ready stance, not an additional attack animation.
+2. **Additional actions (multiple selections, optional):** walk / run / jump / death.
+
+**Idle is always created for every selected stance; no checkbox is needed.** Selecting both stances produces two versions of Idle and every selected action. With no additional actions, only Idle is made. All animations face right in a side view; mirror them in the game engine for left-facing playback.
+
+Confirm the stance references, shared scale and ground position, then complete each stance's Idle animation before extending it into other actions. Unless specified, Codex proposes a 256×256 character baseline; final shared-crop cells may be rectangular or exceed it during extended movements. The plan, assets and progress are saved in the working folder and reused without repeating setup questions.
+
+After delivery, say **“Create a new action”** and choose:
+
+1. **Stances:** normal / combat, multiple selections.
+2. **Action environment:** ground / air, one selection.
+3. **Action description:** free text.
+
+Ground actions use the corresponding Idle as their reference and retain the complete performance, including any time spent off the ground. Air actions use an airborne reference, with movement controlled by the game engine. Choices already supplied are reused. A new stance first receives Idle; missing airborne references first receive jump assets. Both stances produce two versions, using the current chat's character.
+
+Selecting jump delivers separate rising and falling animations; later air actions reuse the saved reference.
 
 Frame count starts at 8 and is adjusted to the action. Each action receives its own deliverables:
 
 - `spritesheet.png`: transparent sheet with equal-sized cells, ordered left to right, then top to bottom.
-- `preview.gif`: transparent looping preview made from the final sheet.
+- `preview.gif`: transparent GIF preview made from the final sheet.
 - `animation.json`: dimensions, sampling, playback timing, and other output data.
-- A ZIP containing the uploaded image, standing reference, video input, source video, all extracted and selected frames, actual prompts, and final outputs.
+- A ZIP containing the uploaded image, stance reference, video input, source video, all extracted and selected frames, actual prompts, and final outputs.
 
 Image and video processing run in local ComfyUI. Prompt preparation, conversation, and visual review still use Codex usage allowance.
 
-Unless requested, video prompts do not prescribe repetition counts. When guiding incidental effects, use the standard effect sentence: “A thin, light-gray, semi-transparent semicircular line appears at the action point, moves outward along the direction of force, and promptly disappears,” while keeping the complete character, equipment, weapon tips and surface detail readable. Content fully replaced by bright or opaque effects cannot be reliably reconstructed. See [video generation](references/generation.md).
+Keep the character and equipment clearly visible. Frame cleanup can remove incidental effects and repair motion blur, but cannot reliably reconstruct completely hidden body parts or equipment.
 
-After per-frame refinement, effect removal and background removal, `--alpha-cutoff 8` clears tiny alpha residues before the second shared crop and packing. Other PNG alpha values retain their gradients; the cutoff is adjustable, and 0 disables cleanup. Compare fine hair, weapon tips and grip connections against the source before delivery. See [sheet processing](references/spritesheet.md).
+The results remove backgrounds and unwanted effects, preserve natural translucent edges, and use a shared crop to maintain consistent character scale and placement.
 
 ## Use an existing video
 
-Provide a video, action interval, playback duration and size requirements to run the independent finishing stage: selection, first shared crop, per-frame refinement and effect/background removal, alpha cleanup, second shared crop, packing and GIF creation.
+Provide a video and describe the action interval, playback duration and size you need. Codex can clean up the frames and create the deliverables without first running the character-image creation process.
 
 Suitable videos have:
 
@@ -101,5 +119,3 @@ To update, tell Codex:
 ```text
 Please update comfyui-video2sprite following this repository's installation and update instructions, preserving my workflow settings, assets, and outputs: https://github.com/yuwechang/comfyui-video2sprite
 ```
-
-Installation locations follow the [official OpenAI Skill documentation](https://learn.chatgpt.com/docs/build-skills). Codex-facing [workflow setup details](references/setup.md) describe mapping and validation. Internal instructions are shared across languages; Codex explains them in your language.

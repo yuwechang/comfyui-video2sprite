@@ -15,6 +15,12 @@ def finish_action(video, max_side, image_profile, prompt_file, job, output,
     validate_alpha_cutoff(alpha_cutoff)
     # The optional size cap belongs to the final transparent crop, not the input.
     report = prepare(video, job, None, count, start, end, seconds, loop, tolerance, scale, motion_type)
+    return finish_prepared(report, image_profile, prompt_file, job, output, max_side, alpha_cutoff)
+
+
+def finish_prepared(report, image_profile, prompt_file, job, output, max_side=None, alpha_cutoff=8):
+    """Refine only explicitly prepared selected frames; independent of their source pipeline."""
+    validate_alpha_cutoff(alpha_cutoff)
     prompt = Path(prompt_file).read_text(encoding='utf-8')
     profile = json.loads(Path(image_profile).read_text(encoding='utf-8'))
     alignment = profile.get('input_alignment', {'width': 1, 'height': 1})
@@ -58,8 +64,10 @@ def finish_action(video, max_side, image_profile, prompt_file, job, output,
     sheet, columns, rows = pack(frames)
     target = Path(job) / 'refined-sheet.png'
     sheet.save(target)
-    report.update({'first_crop': {key: report[key] for key in
-                   ('crop_box', 'source_size', 'source_content_boxes', 'bottom_padding')},
+    first_crop = {key: report[key] for key in
+                  ('crop_box', 'source_size', 'source_content_boxes', 'bottom_padding')}
+    first_crop['scale'] = report.get('scale', 1)
+    report.update({'first_crop': first_crop,
                    'refinement': records, 'final_frames': final_paths,
                    'refined_crop': crop, 'cell_width': frames[0].width,
                    'cell_height': frames[0].height, 'columns': columns, 'rows': rows,
@@ -129,9 +137,10 @@ def main():
     parser.add_argument('--count', type=int, default=8)
     parser.add_argument('--start', type=int)
     parser.add_argument('--end', type=int)
-    parser.add_argument('--motion-type', choices=('continuous','paused','once'))
+    parser.add_argument('--motion-type', choices=('loop','return_to_start','hold_end_pose'))
     parser.add_argument('--seconds', type=float, required=True)
-    parser.add_argument('--loop', action='store_true')
+    parser.add_argument('--loop', action='store_true',
+                        help='Use loop sampling for manual intervals without --motion-type; GIF always repeats')
     args = parser.parse_args()
     try:
         result = finish_action(args.video, args.max_side, args.image_profile, args.prompt_file,

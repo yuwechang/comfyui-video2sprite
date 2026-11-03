@@ -39,10 +39,10 @@
     896
   ],
   "frame_scale": 0.453900709219858,
-  "motion_type": "paused",
+  "motion_type": "return_to_start",
   "automatic_selection": {
     "status": "selected",
-    "motion_type": "paused",
+    "motion_type": "return_to_start",
     "start": 24,
     "end": 108,
     "matching_tail": 108,
