@@ -70,7 +70,7 @@ The initial setup asks for three choices together, without asking again for info
 2. **Additional actions (multiple selections, optional):** walk / run / jump / death.
 3. **Character baseline size:** 128×128 / 256×256 (recommended) / 512×512, or a custom size. This sets the final character's scale, not the video resolution.
 
-**Idle is always created for every selected stance; no checkbox is needed.** Selecting both stances produces two versions of Idle and every selected action. With no additional actions, only Idle is made. All animations face right in a side view; mirror them in the game engine for left-facing playback.
+**Idle is always created for every selected stance; no checkbox is needed.** Selecting both stances produces two versions of Idle and every selected action. With no additional actions, only Idle is made. All animations face right with a fixed side-view camera; the body angle follows the confirmed stance. Mirror them in the game engine for left-facing playback.
 
 Confirm the stance references, shared scale and ground position, then complete each stance's Idle animation before extending it into other actions. Final shared-crop cells may be rectangular or exceed the baseline during extended movements. The plan, baseline size, assets and progress are saved in the working folder and reused without repeating setup questions.
 
