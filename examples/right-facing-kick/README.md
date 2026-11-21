@@ -2,7 +2,7 @@
 
 **繁體中文** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [English](README.en.md)
 
-[返回主 README](../../README.md)
+[回到主頁](../../README.md)
 
 把插畫角色做成 2D 遊戲用的地面踢擊，角色基準大小為 256。
 

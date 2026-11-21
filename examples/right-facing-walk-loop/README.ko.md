@@ -2,7 +2,7 @@
 
 [繁體中文](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · **한국어** · [English](README.en.md)
 
-[ComfyUI Video to Sprite](../../README.ko.md)
+[홈으로 돌아가기](../../README.ko.md)
 
 ## 요청 예시
 
