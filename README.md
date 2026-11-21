@@ -1,5 +1,7 @@
 # ComfyUI Video to Sprite
 
+**繁體中文** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [English](README.en.md)
+
 上傳一張角色參考圖，描述想要的動作，就能製作遊戲用的 2D 角色動畫。以踢擊為例，技能會先用 GPT Image 準備一張靜態戰鬥站姿圖。確認後，這張圖會作為首幀，直接透過本機 ComfyUI 生成踢擊影片。
 
 ## 用途與成品
