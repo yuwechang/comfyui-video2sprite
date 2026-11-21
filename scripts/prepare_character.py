@@ -15,28 +15,31 @@ def pixel_values(image):
     return modern() if modern else image.getdata()
 
 
-def layout(side, multiple_x=32, multiple_y=32, expand_horizontal=0, expand_top=0):
+def layout(side, multiple_x=32, multiple_y=32, expand_horizontal=0, expand_top=0, expand_bottom=0, bottom_ratio=.15):
     if min(side, multiple_x, multiple_y) <= 0:
         raise ValueError('Base side and alignment must be positive')
-    if any(not isinstance(level, int) or level < 0 for level in (expand_horizontal, expand_top)):
+    if any(type(level) is not int or level < 0 for level in (expand_horizontal, expand_top, expand_bottom)):
         raise ValueError('Expansion levels must be nonnegative integers')
-    bottom = math.ceil(side * .07)
+    if not math.isfinite(bottom_ratio) or bottom_ratio<0:
+        raise ValueError('Bottom ratio must be finite and nonnegative')
+    bottom = math.ceil(side * bottom_ratio + expand_bottom * side / 4)
     width = math.ceil((2 * side + 2 * expand_horizontal * side / 4) / multiple_x) * multiple_x
     height = math.ceil((1.5 * side + bottom + expand_top * side / 4) / multiple_y) * multiple_y
     left = (width - side) // 2
     top = height - bottom - side
     return {'side': side, 'width': width, 'height': height,
-            'expand_horizontal': expand_horizontal, 'expand_top': expand_top,
+            'expand_horizontal': expand_horizontal, 'expand_top': expand_top, 'expand_bottom':expand_bottom,
+            'bottom_ratio':bottom_ratio,
             'box': [left, top, left + side, top + side],
             'margins': {'left': left, 'right': width - left - side,
                         'top': top, 'bottom': bottom}}
 
 
 def generation_layout(target_side, source_side, multiple_x=32, multiple_y=32,
-                      expand_horizontal=0, expand_top=0, max_pixels=1_000_000):
+                      expand_horizontal=0, expand_top=0, max_pixels=1_000_000, expand_bottom=0, bottom_ratio=.15):
     if not math.isfinite(max_pixels) or max_pixels <= 0:
         raise ValueError('Maximum generation pixels must be positive')
-    logical = layout(target_side, 1, 1, expand_horizontal, expand_top)
+    logical = layout(target_side, 1, 1, expand_horizontal, expand_top, expand_bottom,bottom_ratio)
     ideal = max(target_side, source_side) / target_side
     scale = min(ideal, math.sqrt(max_pixels / (logical['width'] * logical['height'])))
     # Quantise the character frame once; alignment padding does not change its scale.
@@ -51,7 +54,8 @@ def generation_layout(target_side, source_side, multiple_x=32, multiple_y=32,
     return {'side': side, 'target_side': target_side, 'source_side': source_side,
             'width': width, 'height': height, 'box': [left, top, left+side, top+side],
             'margins': {'left': left, 'right': width-left-side, 'top': top, 'bottom': bottom},
-            'expand_horizontal': expand_horizontal, 'expand_top': expand_top,
+            'expand_horizontal': expand_horizontal, 'expand_top': expand_top, 'expand_bottom':expand_bottom,
+            'bottom_ratio':bottom_ratio,
             'generation_scale': scale, 'restore_scale': target_side/side,
             'max_pixels': max_pixels, 'unaligned_size': [raw_width, raw_height]}
 
@@ -277,6 +281,100 @@ def place_at_scale(image, geometry, scale_side, anchor=None):
                     'anchor':[anchor[0]*size[0]/image.width+dx,anchor[1]*size[1]/image.height+dy]}
 
 
+def extend_edges(image, size, offset):
+    """Extend each boundary row/column, preserving a wall/floor boundary on both sides."""
+    image=image.convert('RGB');width,height=size;dx,dy=offset
+    strip=image.crop((0,0,1,image.height)).resize((width,image.height))
+    right=dx+image.width
+    if right<width:
+        strip.paste(image.crop((image.width-1,0,image.width,image.height)).resize(
+            (width-max(0,right),image.height)),(max(0,right),0))
+    strip.paste(image,(dx,0))
+    canvas=strip.crop((0,0,width,1)).resize((width,height))
+    bottom=dy+image.height
+    if bottom<height:
+        canvas.paste(strip.crop((0,strip.height-1,width,strip.height)).resize(
+            (width,height-max(0,bottom))),(0,max(0,bottom)))
+    canvas.paste(strip,(0,dy))
+    return canvas
+
+
+def prepare_background(args, prior=None):
+    """Place an opaque reference by an explicit subject box and sole contact anchor."""
+    from hashlib import sha256
+    source=Path(args.image).resolve()
+    if prior:
+        if prior.get('background_mode')!='preserve':
+            raise ValueError('Previous layout is not a preserved-background layout')
+        hashes=[prior['source_sha256'],prior['prepared_sha256']]
+        if sha256(source.read_bytes()).hexdigest() not in hashes:
+            raise ValueError('Image differs from the recorded source/prepared layout')
+        source=Path(prior['source_image'])
+        if sha256(source.read_bytes()).hexdigest()!=prior['source_sha256']:
+            raise ValueError('Recorded original source changed')
+    with Image.open(source) as im:
+        if im.convert('RGBA').getchannel('A').getextrema()[0]<255:
+            raise ValueError('Preserve mode requires an opaque wall/floor reference')
+        image=im.convert('RGB')
+    box=getattr(args,'subject_box',None) or (prior or {}).get('subject_box')
+    anchor=getattr(args,'ground_anchor',None) or (prior or {}).get('ground_anchor')
+    if not box or not anchor:
+        raise ValueError('Preserve mode requires subject_box and ground_anchor in source pixels')
+    x0,y0,x1,y1=box;ax,ay=anchor
+    if not (0<=x0<x1<=image.width and 0<=y0<y1<=image.height and x0<=ax<=x1 and y0<ay<=y1):
+        raise ValueError('Invalid subject box or sole contact anchor')
+    previous=(prior or {}).get('geometry',{})
+    if previous and previous['target_side']!=args.side:
+        raise ValueError('Base side must match the previous preparation')
+    levels={}
+    for name,default in (('expand_horizontal',0),('expand_top',0),('expand_bottom',0),('bottom_ratio',.15)):
+        value=getattr(args,name,None)
+        levels[name]=previous.get(name,default) if value is None else value
+    profile=getattr(args,'video_profile',None)
+    rules=json.loads(Path(profile).read_text(encoding='utf-8'))['generation'] if profile else {}
+    source_side=max(image.size)
+    shared_path=getattr(args,'reference_geometry',None) or (prior or {}).get('reference_geometry')
+    coordinate_scale=getattr(args,'source_coordinate_scale',None)
+    if coordinate_scale is None and shared_path:coordinate_scale=(prior or {}).get('source_coordinate_scale')
+    shared_record={}
+    if shared_path:
+        shared=json.loads(Path(shared_path).read_text(encoding='utf-8-sig'))
+        if shared.get('reference_geometry'):raise ValueError('Use the canonical shared geometry, not a derived pose layout')
+        if shared.get('background_mode')!='preserve' or shared['geometry']['target_side']!=args.side:
+            raise ValueError('Shared geometry must use preserve mode and the same base side')
+        if coordinate_scale is None:
+            if list(image.size)!=shared.get('source_size'):raise ValueError('Different source canvas requires explicit source_coordinate_scale')
+            coordinate_scale=1
+        source_side=shared['geometry']['source_side']
+        shared_record={'reference_geometry':str(Path(shared_path).resolve()),
+                       'reference_geometry_sha256':sha256(Path(shared_path).read_bytes()).hexdigest()}
+    elif coordinate_scale is not None:raise ValueError('source_coordinate_scale requires reference_geometry')
+    coordinate_scale=1 if coordinate_scale is None else coordinate_scale
+    if type(coordinate_scale) not in (int,float) or not math.isfinite(coordinate_scale) or coordinate_scale<=0:raise ValueError('Coordinate scale must be finite and positive')
+    geometry=generation_layout(args.side,source_side,rules.get('width_multiple',args.multiple_x),
+        rules.get('height_multiple',args.multiple_y),max_pixels=rules.get('max_pixels',1000000),**levels)
+    factor=geometry['side']/source_side/coordinate_scale
+    scaled_size=tuple(max(1,round(v*factor)) for v in image.size)
+    scaled=image.resize(scaled_size,Image.Resampling.LANCZOS)
+    sx,sy=scaled.width/image.width,scaled.height/image.height
+    dx=round(geometry['width']/2-ax*sx)
+    dy=round(geometry['height']-geometry['margins']['bottom']-ay*sy)
+    placed=[math.floor(x0*sx)+dx,math.floor(y0*sy)+dy,math.ceil(x1*sx)+dx,math.ceil(y1*sy)+dy]
+    if min(placed[:2])<0 or placed[2]>geometry['width'] or placed[3]>geometry['height']:
+        raise ValueError('Subject would be clipped; check source anchor/box or layout size')
+    canvas=extend_edges(scaled,(geometry['width'],geometry['height']),(dx,dy))
+    output=Path(args.output);output.mkdir(parents=True,exist_ok=True)
+    target=output/'prepared.png';canvas.save(target)
+    report={'background_mode':'preserve','source_image':str(source),'source_sha256':sha256(source.read_bytes()).hexdigest(),
+        'source_size':list(image.size),'source_coordinate_scale':coordinate_scale,**shared_record,
+        'prepared_sha256':sha256(target.read_bytes()).hexdigest(),'subject_box':list(box),'ground_anchor':list(anchor),
+        'geometry':geometry,'restore_scale':geometry['restore_scale'],'prepared':str(target.resolve()),
+        'placement':{'offset':[dx,dy],'factor':factor,'placed_bbox':placed,
+                     'anchor':[ax*sx+dx,ay*sy+dy]},'background_rgb':list(canvas.getpixel((0,0)))}
+    save(output/'preparation.json',report)
+    return report
+
+
 def prepare(args):
     prior_path = getattr(args, 'preparation', None)
     if not prior_path:
@@ -284,13 +382,17 @@ def prepare(args):
         if sidecar.exists():
             prior_path = sidecar
     prior = json.loads(Path(prior_path).read_text(encoding='utf-8')) if prior_path else None
+    mode=getattr(args,'background_mode',None) or (prior or {}).get('background_mode','plain')
+    if mode=='preserve':return prepare_background(args,prior)
     previous_geometry = prior['geometry'] if prior else None
     if previous_geometry and previous_geometry.get('target_side', previous_geometry['side']) != args.side:
         raise ValueError('Base side must match the previous preparation')
     levels = {}
-    for name in ('expand_horizontal', 'expand_top'):
+    for name in ('expand_horizontal', 'expand_top', 'expand_bottom'):
         value = getattr(args, name, None)
         levels[name] = value if value is not None else (previous_geometry or {}).get(name, 0)
+    ratio=getattr(args,'bottom_ratio',None)
+    levels['bottom_ratio']=(previous_geometry or {}).get('bottom_ratio',.15) if ratio is None else ratio
     profile_path = getattr(args, 'video_profile', None)
     rules = json.loads(Path(profile_path).read_text(encoding='utf-8'))['generation'] if profile_path else {}
     multiple_x = rules.get('width_multiple', args.multiple_x)
@@ -374,7 +476,14 @@ def main():
     parser.add_argument('--multiple-y', type=int, default=32)
     parser.add_argument('--expand-horizontal', type=int, help='Total extra S/4 levels on each side')
     parser.add_argument('--expand-top', type=int, help='Total extra S/4 levels above')
+    parser.add_argument('--expand-bottom', type=int, help='Total extra S/4 levels below')
+    parser.add_argument('--bottom-ratio',type=float,help='Sole-to-bottom distance as a fraction of base side; default 0.15')
+    parser.add_argument('--background-mode',choices=('plain','preserve'))
+    parser.add_argument('--subject-box',type=int,nargs=4,metavar=('X0','Y0','X1','Y1'))
+    parser.add_argument('--ground-anchor',type=float,nargs=2,metavar=('X','Y'))
     parser.add_argument('--preparation', help='Previous frontend preparation.json for an existing canvas')
+    parser.add_argument('--reference-geometry',help='Shared preserve-mode reference preparation')
+    parser.add_argument('--source-coordinate-scale',type=float,help='Current source pixels per reference source pixel')
     parser.add_argument('--video-profile', default='.local/profile.json')
     args = parser.parse_args()
     if not args.image or not args.job:

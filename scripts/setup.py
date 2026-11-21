@@ -124,6 +124,21 @@ def bind(workflow, mapping, url, output, kind='video'):
     output_schema = fetch(url, '/object_info/' + quote(cls, safe='')).get(cls, {})
     if not output_schema.get('output_node'):
         raise ValueError('Selected node is not an output node')
+    # Runtime bindings replace placeholders; validate the remaining fixed options,
+    # including modern COMBO schemas, before any generation is submitted.
+    replaced={(str(t['node']),t['input']) for targets in bindings.values() for t in targets}
+    for node_id,node in graph.items():
+        cls=node['class_type']
+        if cls not in schemas:schemas.update(fetch(url,'/object_info/'+quote(cls,safe='')))
+        definitions=schemas.get(cls,{}).get('input',{})
+        for field,value in node['inputs'].items():
+            if (node_id,field) in replaced or isinstance(value,list):continue
+            definition=definitions.get('required',{}).get(field,definitions.get('optional',{}).get(field))
+            if not definition:continue
+            choices=(definition[0] if isinstance(definition[0],list) else
+                     definition[1].get('options') if definition[0]=='COMBO' and len(definition)>1 else None)
+            if choices is not None and value not in choices:
+                raise ValueError(f'Invalid fixed option {node_id}.{field}: {value}')
     if kind == 'video':
         rules = config['generation']
         rules.setdefault('max_pixels', 1_000_000)

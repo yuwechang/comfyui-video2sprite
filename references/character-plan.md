@@ -2,79 +2,60 @@
 
 ## 觸發與對話範圍
 
-已安裝 Skill 後，新對話可用「使用 `$comfyui-video2sprite`，替這個角色建立遊戲動畫」並附角色參考圖觸發。明確的角色動畫製作需求也可觸發；單純上傳圖片不代表要求執行。
+已安裝 Skill 後，新對話可用「使用 `$comfyui-video2sprite`，替這個角色做出踢擊動作」並附角色參考圖觸發。明確的角色動畫製作需求也可觸發；單純上傳圖片不代表要求執行。
 
 一個對話只處理一個角色，使用獨立工作資料夾。首次參考存入計畫後不覆蓋。同角色補充參考可留在原對話，不重新詢問首次設定；用途不明時只釐清是否為同角色。第二個角色請使用者另開新對話並上傳圖片，不在目前計畫中切換角色。即使重用同一套本機工作流，新對話也不自動套用其他角色計畫。
 
 僅提供既有影片時，直接執行後段，不強制建立 Idle、角色計畫或前段素材。
 
-`examples/` 展示單一動作的實際素材、處理階段與成品規格，供外觀比較及素材回查；它們未示範新角色完整的 Idle 建立與批次任務流程。首次製作依本指引執行，不從範例使用者說明推導流程，也不因範例曾直接從站立圖片生成動作而省略本角色的 Idle。範例來源與實際提示詞是素材記錄，不是必須照抄的通用規則。
+`examples/` 展示單一動作的實際素材、處理階段與成品規格，供外觀比較及素材回查；首次製作依本指引執行。範例來源與實際提示詞是素材記錄，不是必須照抄的通用規則。
 
-## 首次詢問
+## 首次開始
 
-第一次提供新角色參考且要求製作時，集中收集三項。已明說的項目直接採用，只補問缺少的項目；多選工具不可用時，列出選項讓使用者以文字選擇，不把單選工具偽裝為多選。
+上傳角色圖並直接描述動作即可開始，例如「將上傳的角色參考圖，用 comfyui-video2sprite 的技能做出踢擊的動作。」首次只確認尚未提供的角色基準邊長（128／256／512 或自訂）。這是成品尺度，與影片解析度及裁切格子大小分開。使用者交由 Codex 決定時採 256。
 
-先檢視角色參考。只有主體、需保留的外觀／裝備或視角有影響製作的歧義時，才針對缺少資訊補問；可直接看清的內容不逐項要求使用者重述。準備完成後展示實際姿態參考供確認，不以事前文字問卷取代圖片確認。
+Codex 依動作的起始與回復姿態選擇站姿首幀。一般移動、休息等採一般站姿，預設為朝右 90 度正側面。踢擊、出拳與從防守架勢發動的動作採戰鬥站姿，預設如角色參考中的朝右斜側防守姿勢，保留可辨識的軀幹角度與站姿。明確指定的姿態優先。只有缺少資訊會實質影響成品時才補問。
 
-1. **姿態（可複選）**：一般／攻擊。至少選一種。一般對應 `normal`；攻擊對應 `combat`，指戰鬥準備架勢，不是執行出招。
-2. **其他動作（可複選，也可不選）**：走路／跑步／跳躍／死亡。對應 `walk`／`run`／`jump`／`death`。跳躍是一項製作請求，交付上升、下落兩段，並保存共用空中基準；不要求使用者分別選兩段。
-3. **角色基準大小（單選，可自訂）**：128×128／256×256（建議）／512×512，允許輸入其他正整數邊長。問題旁說明這是遊戲成品的角色尺度基準，不是來源影片解析度，也不是最終格子的固定尺寸。等待使用者回答，不能只告知預設便開始；使用者明確表示交由 Codex 決定時採 256×256。
-
-問題旁明示：**每個所選姿態都會自動製作 Idle（待機動畫），不需勾選。未選其他動作時，只製作 Idle。** 不詢問 2D／2.5D 或方向；統一面朝右、固定側面鏡頭，身體朝向依已確認架勢自然呈現，左向可在遊戲引擎鏡像。建立姿態與提示詞依[圖片預處理](image-processing.md)，不把固定側面鏡頭誤作全身必須嚴格正側面的限制。使用者明確要求不同方向時先說明目前預設與影響，不悄悄擴成多方向批次。
-
-選中的姿態與動作取全部組合。例如兩種姿態與走路都選，清單包含一般 Idle、攻擊 Idle、一般走路、攻擊姿態走路。死亡、跳起等也不能因動作名稱自行省略其中一份。不因「攻擊姿態」額外加入攻擊招式、姿態轉換或未選動作。
-
-將確認的角色基準邊長傳入計畫的 `--side` 並保存；同角色後續動作沿用，不重問。這是尺度基準，不限制最終裁切格子形狀。播放時間、格數等依現有動作處理指引，不逐題重新詢問已有設定。簡短列出製作清單及採用設定後開始；沿用既有參考圖的必要視覺確認，不為每個動作重複相同問答。
-
-開工摘要另用簡短文字說明順序：「先準備角色姿態參考供你確認，再完成各姿態必做的 Idle，接著製作所選動作並交付影格表、GIF 與素材包。」同時列出本次實際工作資料夾及成品目錄；資料夾與環境設定的取得依[環境與工作流對接](setup.md)。這是主動引導，不是追加一輪固定問答或額外開工核准。生成解析度、選幀、裁切及 Alpha 等處理細節依對應指引，不加入首次問卷；需要會影響使用者意圖的選擇時再補問。
+保留使用者已描述的目標動作。先準備並展示推定姿態供確認，確認站姿首幀後直接生成原動作，沿用已確認的尺度。依動作的伸展、位移及角色配件預留演出空間，見[影片演出版面](image-processing.md#建立影片演出版面)。
 
 ## 保存與執行
 
 使用 `scripts/character_plan.py`，在使用者工作資料夾執行；此腳本只保存計畫，不提交 ComfyUI。每個工作資料夾只保存一個角色：
 
 ```text
-python scripts/character_plan.py init --reference character.png --stances normal combat --actions walk run --side 256
+python scripts/character_plan.py init --reference character.png --stances normal combat --side 256
 python scripts/character_plan.py show
 ```
 
-資料在 `work/character/plan.json`，記錄原始參考、方向、尺度、姿態素材及全部任務。初始化遇到既有計畫會拒絕覆蓋；讀取並沿用，不能刪除計畫來偷偷換角色。`--actions` 可省略；Idle 由程式自動加入。相同選項會去重。
+資料在 `work/character/plan.json`，記錄原始參考、方向、尺度、姿態素材及全部任務。初始化遇到既有計畫會拒絕覆蓋；讀取並沿用，不能刪除計畫來偷偷換角色。首次初始化保存角色資料，再用 add 登錄使用者要求的動作，之後建立執行計畫。明確要求待機動畫時，使用 `init --actions idle` 或 `add --idle --environment ground --motion-type loop`。相同姿態會去重。
 
-1. 依[圖片預處理](image-processing.md)準備各姿態參考，建立共用尺度與站位，使用者確認外觀。
-2. 優先完成各姿態 Idle：圖片參考不等於 Idle 動畫，必須生成呼吸、重心等適合姿態的待機動作影片，完成後段與視覺驗證。細微 Idle 可能低於現有自動選段的運動門檻；若回報 `needs_review`，檢視後以 `--start`、`--end` 指定可銜接的完整週期，不為通過選段而把待機動作誇大或將靜止影片列為成功。
-3. 從該 Idle 來源影片選一張清楚、完整且符合待機架勢的影格作為後續影片輸入；保持來源演出畫布、角色尺度與站位。不把後段再次裁切過的最終小圖直接當成前段版面。必要時先透過圖片工作流清理此基準影格並保持畫布座標，這是前段參考準備，不對其他動作預先執行後段 Refine。
-4. 保存姿態參考、該 Idle 輸入版面的 `preparation.json` 及可重用 Idle 影格：
+初始化後依 [執行計畫與資料流](execution.md)建立 execution JSON，填入必要資料，使用同一個正式迴圈完成所有動畫。`character_plan.py` 保存需求與依賴，執行計畫保存各階段資料、素材與檢查並同步角色索引；不要為每個動作另寫腳本或手動重建產物清單。
+
+先準備所需站姿並確認共用尺度。地面動作使用該站姿的完整畫布首幀；空中動作使用對應空中基準。保持原畫布、尺度與站位，不將後段裁切小格當成前段輸入。細微 Idle 自動選段不明確時，檢視已有來源概覽，在 selection args 填入實際完整週期，不誇大動作或將靜止片段當成功。
+
+`depends_on`、`entry_reference`、`pipeline` 與 `vertical_alignment` 是分流依據。`idle`、`walk`、`run` 使用 `loop`，`death` 使用 `hold_end_pose`；定義及取樣見 [後段指引](spritesheet.md)。跳躍與空中處理見 [空中指引](airborne.md)。每階段提示詞保存為獨立檔案並登錄；執行計畫自動同步姿態參考、版面、Idle 影格、空中 profile 及完成產物。
+
+角色計畫中的 completed 只是完成索引，不是品質證明。正式迴圈須通過必要語意檢查與機械檢查、打包後才記錄完成。接續時使用原執行計畫 run，完成任務不重送，不掃描目錄重新蒐集素材。變更同名成品使用新的任務及輸出目錄，不覆寫已交付資料。後段模組只接收影片與明確參數，不讀角色計畫；既有影片直接使用 create-video 入口。
+
+## 交付與追加動作
+
+每個動作交付單一無特效 PNG、無限重播 GIF、動畫資料及素材 ZIP。交付後直接描述下一個動作，例如「再來我想要產生側踢動作」。
+
+收到動作描述後，沿用同角色已保存的基準邊長，依起始架勢與演出意圖判定一般或戰鬥站姿，使用者明確指定時優先。重用已確認的同姿態首幀，缺少時由執行計畫準備首幀，再生成所要求的動作。依描述判定環境及結束行為，缺少必要空中基準就補建。只有影響輸出的歧義才補問。若未提供動作描述，只請使用者描述動作。
+
+多行獨立動作分別登錄，同一行的連招保留為一項。用 character_plan.py add 登錄，再以 execution_plan.py extend 追加。模擬請求只展示預計清單。
+
+### 空中基準製作與空中延伸動作
+
+先判斷交付意圖，而非依動作名稱或關鍵字分流：需要建立引擎驅動的上升／下落基礎片段，使用 `pipeline=jump`，交付兩段並保存共用空中基準；需要角色已在空中時執行的其他動作，使用 `pipeline=airborne`，以已保存基準延伸。後者缺基準時先補建依賴，不把基礎片段需求再多建成一份空中自訂動作。交付意圖不明時釐清，不能把所有空中需求一律解成同一類。地面環境的完整演出仍依下節保留，不因演出包含離地就自動分段。
+
+基礎片段請求使用正式入口：
 
 ```text
-python scripts/character_plan.py record-stance --stance normal --reference outputs/normal-reference/standing.png --preparation outputs/normal-input/preparation.json --idle-frame work/character/normal-idle-frame.png
+python scripts/character_plan.py add --stances combat --environment air --description "使用者要求的基礎空中片段描述" --motion-type hold_end_pose --pipeline jump
 ```
 
-5. 依任務的 `depends_on`、`entry_reference`、`pipeline` 與 `vertical_alignment` 執行，不跨姿態套用。`idle`、`walk`、`run` 使用 `loop`；`death` 使用 `hold_end_pose`，完整定義見[影格表與預覽](spritesheet.md)。`jump` 使用[跳躍與空中處理](airborne.md)，由對應 Idle 生成完整來源，再分段；一般地面動作使用原有處理，空中動作使用已保存的空中基準。每項任務保存實際提示詞。
-6. 任務進度以 `pending`、`running`、`needs_review`、`completed` 保存。提交前標示 `running`，失敗或需檢視時保存 `needs_review`；`completed` 須先符合[完成與交付驗證](spritesheet.md#完成與交付驗證)。不要為了通過依賴檢查提早標為完成。
-
-```text
-python scripts/character_plan.py mark --task normal-idle --status running
-python scripts/character_plan.py mark --task normal-idle --status completed --artifacts work/normal-idle-artifacts.json
-```
-
-`--artifacts` 為 JSON：檔名使用絕對路徑或相對目前工作目錄，欄位名稱用小寫識別字；完成至少需要 `source_video`、`animation`，可另存 `prompt`、`input_image`、`zip`。例如 `{"source_video":"work/character/tasks/normal-idle/job/source.mp4","animation":"outputs/character/normal-idle/animation.json"}`，以實際產物路徑為準。
-
-跳躍任務的完成記錄改為 `source_video`、`rise_animation`、`fall_animation`、`airborne_profile`，分別指向實際產物。另將空中基準登記至該姿態：
-
-```text
-python scripts/character_plan.py record-airborne --stance normal --profile outputs/character/normal-jump/airborne-reference/airborne-reference.json
-```
-
-`character_plan.py` 檢查任務依賴、必要記錄與提供的素材路徑是否存在；它不驗證影片或圖片品質，不判定所指檔案是否符合任務，也不確認使用者已能取得交付檔案。`mark --status completed` 是保存 Codex 已完成驗證的結論，不是啟動驗證的指令。記錄中的必要欄位不等於完整交付清單；Codex 仍須檢查 PNG、GIF、JSON、ZIP 及實際使用素材。
-
-中斷後先 `show`，再查各既有工作流任務狀態，依原目錄接續；計畫的 `running` 不代表應重新提交。完成項目不重新生成。批次清單逐項執行並交付，不因完成第一個動作就結束整項任務。變更同名成品時建立新的獨立執行目錄並更新產物記錄，不覆寫已交付資料。
-
-後段不讀取此計畫，只接收來源影片、統一縮回倍率、動作類型與必要處理參數；不因本流程要求既有影片使用者建立前段資料。打包各任務時依實際使用的來源列出上傳圖、姿態參考、Idle 基準影格、提示詞等，不固定假設自然站姿。
-
-## 交付與建立新動作
-
-交付清單按姿態／動作列出 PNG、無限重播 GIF、JSON 與 ZIP。本次要求全部完成後，結尾加上：**要替這個角色追加動畫，請輸入「建立新動作」。** 此入口屬於本對話角色。
-
-收到指令後依序收集：**姿態（一般／攻擊，可複選）**、**動作環境（地面／空中，單選）**、**動作描述（自由文字）**。已在同則訊息明確提供的內容不重問；沒有明確環境時只補問該項，不以描述中的詞彙推測。使用者語言的同義要求也使用此入口。新姿態先補建 Idle，不重問整套首次清單；兩種姿態都選時，同一描述各做一份。
+同姿態已有基礎任務時接續／沿用該任務，不重複建立；未完成者先完成。來源包含起始待機、上升、下落與落地回復；交付只取上升及下落有效段，選幀後做腰部垂直定位，依[空中處理](airborne.md)執行。`--pipeline` 是 Codex 根據交付意圖填入的資料，不解析自由文字。
 
 ### 環境與結束行為分開判定
 
@@ -82,12 +63,12 @@ python scripts/character_plan.py record-airborne --stance normal --profile outpu
 
 | 環境 | 起始／起收基準 | 位移與處理 | 計畫路徑 |
 | --- | --- | --- | --- |
-| 地面 `ground` | 對應姿態的 Idle | 保留完整演出的垂直位移，使用一般選段、Refine 與拼表流程 | `pipeline=standard`、`entry_reference=idle`、`vertical_alignment=none` |
+| 地面 `ground` | 對應站姿首幀 | 保留完整演出的垂直位移，使用一般選段、Refine 與拼表流程 | `pipeline=standard`、`entry_reference=prepared_stance`、`vertical_alignment=none` |
 | 空中 `air` | 對應姿態已保存的空中基準 | 只交付空中動作本體；選幀後以腰部做垂直定位，位移由引擎控制 | `pipeline=airborne`、`entry_reference=airborne`、`vertical_alignment=waist` |
 
 地面環境指動作的發動與銜接情境，不表示每格都必須接地。動作中即使離地或翻轉，仍保留完整演出與位移，不自行拆成空中片段、不套用腰部高度固定。明確選擇的環境優先於任何文字內容，不能以關鍵字、動作名稱或特定情境清單分流。若使用者的要求互相衝突，釐清衝突，不悄悄改環境。
 
-再依[動作類型定義](spritesheet.md)判斷：`loop` 保留循環本體；`return_to_start` 完成一次動作後回到該環境的起始基準；`hold_end_pose` 停在目標結束姿態。地面的返回基準是對應 Idle，空中則是對應空中姿態，不強制回到地面。只有結束行為有歧義時才補問。後段的選幀策略與時間分配依該指引，不任意刪除中段停留或重設來源節奏。
+再依[動作類型定義](spritesheet.md)判斷：`loop` 保留循環本體；`return_to_start` 完成一次動作後回到該環境的起始基準；`hold_end_pose` 停在目標結束姿態。地面的返回基準是對應站姿首幀，空中則是對應空中姿態，不強制回到地面。只有結束行為有歧義時才補問。後段的選幀策略與時間分配依該指引，不任意刪除中段停留或重設來源節奏。
 
 對單次、可再次觸發的動作，未另指定結束要求時，以 `return_to_start` 規劃。描述已明確表達持續循環或保留目標結束狀態時，依其要求選擇類型。此處判斷的是結束行為，不改變已選環境，也不建立按動作名稱列舉的對照表。
 
@@ -95,4 +76,4 @@ python scripts/character_plan.py record-airborne --stance normal --profile outpu
 python scripts/character_plan.py add --stances normal combat --environment ground --description "使用者提供的動作描述" --motion-type return_to_start
 ```
 
-程式為新增動作分配獨立編號，同次兩姿態使用相同動作編號。`--environment` 必填，腳本只保存描述，不讀取描述來決定處理路徑。選空中且缺少跳躍任務時，自動補入該姿態的跳躍依賴；其完成並登記空中基準後才能執行空中動作。選地面不會自動補跳躍依賴。檢查計畫後按依賴順序完成，交付後再次提供同一觸發指令。
+程式為新增動作分配獨立編號，同次兩姿態使用相同動作編號。`--environment` 必填，腳本只保存描述，不讀取描述來決定處理路徑。選空中且缺少跳躍任務時，自動補入該姿態的跳躍依賴；其完成並登記空中基準後才能執行空中動作。選地面不會自動補跳躍依賴。保存後用 execution_plan.py extend 追加新任務，再依執行計畫接續；交付後再次提供同一觸發指令。

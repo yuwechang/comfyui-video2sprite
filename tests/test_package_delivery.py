@@ -40,6 +40,9 @@ class DeliveryTests(unittest.TestCase):
             self.fixture(root)
             result=delivery.package(root/'package.json',root/'bundle.zip')
             self.assertEqual((result['all_frames'],result['selected_frames']),(4,2))
+            self.assertEqual(result['verification']['crc'],'pass')
+            self.assertEqual(result['verification']['inventory'],'pass')
+            self.assertEqual(result['verification']['variants'][0]['frames'],2)
             with zipfile.ZipFile(result['zip']) as archive:
                 self.assertIsNone(archive.testzip())
                 self.assertEqual(archive.read('frames/all/frame_000002.png'),
@@ -65,6 +68,10 @@ class DeliveryTests(unittest.TestCase):
                           refinement=[{'input': 'source/000.png', 'refined': 'source/002.png',
                                        'source_frame_index': index, 'padding': [0, 0]}
                                       for index in [0, 2]])
+            (root/'background.json').write_text('{}')
+            report['background_profile']='background.json'
+            for record in report['refinement']:
+                record.update(before_background_removal='source/000.png',background_job='background.json')
             (root/'animation.json').write_text(json.dumps(report))
             result = delivery.package(root/'package.json', root/'bundle.zip')
             with zipfile.ZipFile(result['zip']) as archive:
@@ -73,9 +80,26 @@ class DeliveryTests(unittest.TestCase):
                     for path in portable[field]:
                         self.assertIn(path.removeprefix('../'), archive.namelist())
                 for record in portable['refinement']:
-                    for field in ('input', 'refined'):
+                    for field in ('input', 'refined','before_background_removal','background_job'):
                         self.assertIn(record[field].removeprefix('../'), archive.namelist())
+                self.assertIn('result/'+portable['background_profile'],archive.namelist())
                 self.assertNotIn(str(root), json.dumps(portable))
+
+    def test_required_role_blocks_unregistered_or_changed_material(self):
+        from job_contract import file_digest
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);self.fixture(root)
+            config=json.loads((root/'package.json').read_text(encoding='utf-8'))
+            config['required_materials']={'reference':{'path':'input/reference.png',
+                'sha256':file_digest(root/'source/000.png')}}
+            (root/'package.json').write_text(json.dumps(config),encoding='utf-8')
+            result=delivery.package(root/'package.json',root/'valid.zip')
+            self.assertEqual(result['verification']['required_material_roles'],1)
+            config['files'].pop('input/reference.png')
+            (root/'package.json').write_text(json.dumps(config),encoding='utf-8')
+            with self.assertRaisesRegex(ValueError,'Required material'):
+                delivery.package(root/'package.json',root/'invalid.zip')
+            self.assertFalse((root/'invalid.zip').exists())
 
     def test_missing_input_fails_before_export(self):
         with tempfile.TemporaryDirectory() as folder:

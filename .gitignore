@@ -9,6 +9,7 @@
 
 # Python 環境、快取與建置產物
 .venv/
+.venv-segmentation/
 venv/
 __pycache__/
 *.py[cod]

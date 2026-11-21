@@ -45,6 +45,17 @@ class SegmentedTests(unittest.TestCase):
         self.assertTrue(report['lead_review_required'])
         self.assertEqual(report['budget']['y_ms'],1000)
 
+    def test_explicit_hold_indices_cannot_bypass_phase_timing(self):
+        import workflow_ops
+        clock=FrameClock([Fraction(i,20) for i in range(4)],Fraction(4,20))
+        with patch('source_clock.FrameClock.read',return_value=clock):
+            with self.assertRaisesRegex(ValueError,'require lead_start'):
+                workflow_ops.selection('unused','unused',.2,'hold_end_pose',
+                    indices=[0,1,3],frame_durations_ms=[40,80,80])
+            with self.assertRaisesRegex(ValueError,'source-proportional'):
+                workflow_ops.selection('unused','unused',.2,'hold_end_pose',
+                    start=1,end=3,lead_start=0,indices=[0,1,3],frame_durations_ms=[100,50,50])
+
     def test_static_x_does_not_fill_budget_with_copies(self):
         clock=FrameClock(range(30),30)
         x=lead_samples([pose(2)]*20,clock,0,20,30,160)

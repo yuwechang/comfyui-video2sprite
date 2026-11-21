@@ -115,5 +115,44 @@ class AirborneTests(unittest.TestCase):
             ref,roi=airborne.load_reference(result['airborne_reference'])
             self.assertEqual(ref.size,base.size)
 
+            # Both effect variants reuse one alignment/selection and each processes the apex once.
+            (root/'remove.txt').write_text('preserve pose and remove effects')
+            calls.clear()
+            with patch.object(finish_animation, 'process', side_effect=refine):
+                paired = pipeline.jump(root/'source.mkv',0,4,8,[48,28,80,60],3,3,
+                                       root/'paired-job',root/'paired-out',root/'image.json',
+                                       root/'prompt.txt',.3,.4,remove_effects_prompt_file=root/'remove.txt')
+            self.assertEqual(len(calls), 10)
+            for variant in finish_animation.EFFECT_VARIANTS:
+                rise = paired['rise']['variants'][variant]
+                fall = paired['fall']['variants'][variant]
+                self.assertEqual(rise['anchor_type'], 'waist')
+                self.assertEqual(rise['anchor_px'], fall['anchor_px'])
+                self.assertEqual(rise['refinement'][-1]['refined'], fall['refinement'][0]['refined'])
+                self.assertEqual(Path(rise['final_frames'][-1]).read_bytes(), Path(fall['final_frames'][0]).read_bytes())
+                self.assertEqual(rise['duration_ms'], 300)
+                self.assertEqual(fall['duration_ms'], 400)
+            self.assertTrue((root/'paired-out/rise/variants.json').exists())
+            self.assertTrue((root/'paired-out/fall/variants.json').exists())
+            import apply_corrections
+            joint = json.loads(Path(paired['joint_summary']).read_text())
+            apex_record = joint['variants']['without_effects']['refinement'][2]
+            with Image.open(apex_record['refined']) as image:
+                replacement = image.convert('RGBA')
+            replacement.save(root/'apex-correction.png')
+            (root/'correction-prompt.txt').write_text('Targeted correction')
+            (root/'corrections.json').write_text(json.dumps({'without_effects': {'4': {
+                'image':'apex-correction.png','prompt':'correction-prompt.txt'}}}))
+            with patch.object(finish_animation, 'process') as resubmit:
+                corrected = apply_corrections.apply(root/'paired-out/jump.json',root/'corrections.json',
+                                                    root/'corrected-job',root/'corrected-out')
+            resubmit.assert_not_called()
+            for variant in finish_animation.EFFECT_VARIANTS:
+                r = corrected['rise']['variants'][variant];f = corrected['fall']['variants'][variant]
+                self.assertEqual(r['anchor_px'],f['anchor_px'])
+                self.assertEqual(Path(r['final_frames'][-1]).read_bytes(),Path(f['final_frames'][0]).read_bytes())
+                self.assertEqual(r['frame_durations_ms'],paired['rise']['variants'][variant]['frame_durations_ms'])
+
+
 
 if __name__ == '__main__':unittest.main()

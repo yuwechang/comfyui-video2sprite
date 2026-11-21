@@ -1,0 +1,3 @@
+# Independent local analysis masks; CUDA/cuDNN runtime wheels included.
+rembg[gpu]==2.0.87
+onnxruntime-gpu[cuda,cudnn]==1.32.0

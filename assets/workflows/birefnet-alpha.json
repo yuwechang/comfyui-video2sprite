@@ -1,0 +1,75 @@
+{
+  "1": {
+    "inputs": {
+      "bg_removal_name": "birefnet.safetensors"
+    },
+    "class_type": "LoadBackgroundRemovalModel",
+    "_meta": {
+      "title": "載入背景移除模型"
+    }
+  },
+  "2": {
+    "inputs": {
+      "bg_removal_model": [
+        "1",
+        0
+      ],
+      "image": [
+        "3",
+        0
+      ]
+    },
+    "class_type": "RemoveBackground",
+    "_meta": {
+      "title": "移除背景"
+    }
+  },
+  "3": {
+    "inputs": {
+      "image": ""
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "載入圖片"
+    }
+  },
+  "24": {
+    "inputs": {
+      "expand": -1,
+      "tapered_corners": true,
+      "mask": [
+        "2",
+        0
+      ]
+    },
+    "class_type": "GrowMask",
+    "_meta": {
+      "title": "GrowMask"
+    }
+  },
+  "42": {
+    "inputs": {
+      "mask": [
+        "24",
+        0
+      ]
+    },
+    "class_type": "MaskToImage",
+    "_meta": {
+      "title": "將遮罩轉換為影像"
+    }
+  },
+  "43": {
+    "inputs": {
+      "filename_prefix": "video2sprite_alpha",
+      "images": [
+        "42",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "儲存圖片"
+    }
+  }
+}

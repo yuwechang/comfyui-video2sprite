@@ -100,21 +100,36 @@ def history_result(base, prompt_id):
 
 def wait_for_result(base, prompt_id, ws, timeout, state_path, state):
     import websocket
+    if not math.isfinite(timeout) or timeout<=0:raise ValueError('Wait timeout must be finite and positive')
     deadline = time.monotonic() + timeout
     next_history = time.monotonic()  # Covers resumed tasks and lost completion events.
+    telemetry={'history_checks':0,'events':0,'transport':'websocket' if ws else 'history',
+               'timed_out':False}
+    state['wait']=telemetry
     while time.monotonic() < deadline:
         if time.monotonic() >= next_history:
-            result = history_result(base, prompt_id)
+            telemetry['history_checks']+=1
+            try:
+                result = history_result(base, prompt_id)
+            except OSError as exc:
+                # Retry read-only transport failures locally. Never resubmit a job.
+                telemetry['last_transport_error']=str(exc)
+                result=None
+            except RuntimeError as exc:
+                telemetry['execution_error']=str(exc);save(state_path,state)
+                raise
+            save(state_path,state)
             if result:
                 return result
             next_history = time.monotonic() + (60 if ws else 15)
         if ws:
             try:
-                ws.settimeout(min(10, max(.1, deadline - time.monotonic())))
+                ws.settimeout(max(.001,min(next_history,deadline)-time.monotonic()))
                 raw = ws.recv()
                 if not raw:
                     ws.close()
                     ws = None
+                    telemetry['transport']='history';next_history=0
                     continue
                 if not isinstance(raw, str):
                     continue
@@ -123,7 +138,9 @@ def wait_for_result(base, prompt_id, ws, timeout, state_path, state):
                 if data.get('prompt_id') != prompt_id:
                     continue
                 kind = message.get('type')
+                telemetry['events']+=1
                 if kind in ('execution_error', 'execution_interrupted'):
+                    telemetry['execution_error']=data;save(state_path,state)
                     raise RuntimeError(json.dumps(data, ensure_ascii=False)[:3000])
                 if kind == 'executing' and data.get('node') is not None:
                     state['current_node'] = data['node']
@@ -135,8 +152,11 @@ def wait_for_result(base, prompt_id, ws, timeout, state_path, state):
             except (websocket.WebSocketException, OSError):
                 ws.close()
                 ws = None
+                telemetry['transport']='history';next_history=0
         else:
-            time.sleep(min(5, max(0, deadline - time.monotonic())))
+            time.sleep(max(0,min(next_history,deadline)-time.monotonic()))
+    telemetry['timed_out']=True
+    save(state_path,state)
     raise TimeoutError('Wait timed out; resume with the same job directory. Task was not cancelled.')
 
 
@@ -186,10 +206,41 @@ def run(args):
     folder.mkdir(parents=True, exist_ok=True)
     state_path = folder / 'job.json'
     ws = None
+    from job_contract import file_digest
+    contract = None
+    extra_images=getattr(args,'extra_images',None) or []
+    if extra_images and not args.image2:raise ValueError('Additional references require image and image2 in order')
+    if args.image or args.prompt_file:
+        if not args.image or not args.prompt_file:
+            raise ValueError('Provide both --image and --prompt-file to verify job inputs')
+        contract = dict(profile=file_digest(args.profile), image=file_digest(args.image),
+                        image2=file_digest(args.image2) if args.image2 else None,
+                        prompt=file_digest(args.prompt_file), width=args.width, height=args.height,
+                        seconds=args.seconds, seed=args.seed)
+        if extra_images:contract['extra_images']=[file_digest(path) for path in extra_images]
     if state_path.exists():
         state = json.loads(state_path.read_text(encoding='utf-8'))
+        if contract is not None and state.get('input_contract') != contract:
+            raise ValueError('Video job inputs changed; use a new job directory')
         if state.get('status') == 'complete':
-            return state
+            valid = bool(state.get('videos'))
+            for video in state.get('videos', []):
+                path = Path(video['path'])
+                if not path.is_file():
+                    valid = False
+                    break
+                probe = subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0',
+                                        '-show_entries', 'stream=width,height', '-of', 'json', str(path)],
+                                       capture_output=True, text=True)
+                try:
+                    readable = not probe.returncode and bool(json.loads(probe.stdout).get('streams'))
+                except (ValueError, TypeError):
+                    readable = False
+                if not readable:
+                    valid = False
+                    break
+            if valid:
+                return state
         if not state.get('prompt_id'):
             raise ValueError('Prior submission has no confirmed ID; inspect queue before retrying')
         base = state['url']
@@ -213,6 +264,13 @@ def run(args):
         values['image_1'] = upload(base, args.image)
         if args.image2:
             values['image_2'] = upload(base, args.image2)
+        for number,path in enumerate(extra_images,3):
+            role='image_'+str(number)
+            if role not in profile['bindings']:raise ValueError('Missing binding for '+role)
+            values[role]=upload(base,path)
+        for role in profile['bindings']:
+            if role.startswith('image_') and role[6:].isdigit() and int(role[6:])>=3 and role not in values:
+                raise ValueError('Provide all bound reference images: '+role)
         graph = build_graph(profile, values, omit_second=not args.image2)
         save(folder / 'submitted-workflow.json', graph)
         client_id = uuid.uuid4().hex
@@ -222,7 +280,7 @@ def run(args):
         except (websocket.WebSocketException, OSError):
             ws = None
         state = {'url': base, 'client_id': client_id, 'status': 'submitting',
-                 'output_node': str(profile['output_node']), 'width': values['width'],
+                 'output_node': str(profile['output_node']), 'input_contract': contract, 'width': values['width'],
                  'height': values['height'], 'frames': frames, 'fps': rules['fps'], 'seed': args.seed}
         save(state_path, state)
         # Never automatically repeat POST /prompt: a lost response may still mean acceptance.
@@ -249,6 +307,7 @@ def main():
     parser.add_argument('--job', required=True)
     parser.add_argument('--image')
     parser.add_argument('--image2')
+    parser.add_argument('--extra-images',nargs='*',help='Ordered reference images 3 and later; requires corresponding image_N bindings')
     parser.add_argument('--prompt-file')
     parser.add_argument('--width', type=int, default=768)
     parser.add_argument('--height', type=int, default=768)

@@ -43,14 +43,13 @@ def file_path(value):
 
 def task(stance, action, description, motion_type, environment='ground', pipeline='standard'):
     identifier = f'{stance}-{action}'
-    dependency = f'{stance}-jump' if environment == 'air' and pipeline != 'jump' else f'{stance}-idle'
+    airborne = environment == 'air' and pipeline != 'jump'
     return {'id': identifier, 'stance': stance, 'action': action, 'description': description,
             'environment': environment, 'pipeline': pipeline,
-            'entry_reference': 'stance_reference' if action == 'idle' else
-                               ('airborne' if environment == 'air' and pipeline != 'jump' else 'idle'),
+            'entry_reference': 'airborne' if airborne else 'prepared_stance',
             'vertical_alignment': 'waist' if environment == 'air' else 'none',
             'motion_type': motion_type, 'status': 'pending',
-            'depends_on': [] if action == 'idle' else [dependency],
+            'depends_on': [f'{stance}-jump'] if airborne else [],
             'job': f'work/character/tasks/{identifier}',
             'output': f'outputs/character/{identifier}', 'artifacts': {}}
 
@@ -59,11 +58,11 @@ def initialize(workspace, reference, stances, actions=(), side=256):
     if plan_path(workspace).exists():
         raise ValueError('This workspace already has a character; reuse it. Use a new chat/workspace for another character.')
     stances = choices(stances, STANCES)
-    if any(action not in ACTIONS or action == 'idle' for action in actions):
-        raise ValueError('Additional actions: walk, run, jump, death; Idle is automatic')
+    if any(action not in ACTIONS for action in actions):
+        raise ValueError('Actions: idle, walk, run, jump, death')
     if type(side) is not int or side <= 0:
         raise ValueError('Character side must be a positive integer')
-    selected = ['idle'] + list(dict.fromkeys(actions))
+    selected = list(dict.fromkeys(actions))
     plan = {'reference': file_path(reference), 'facing': 'right', 'side': side,
             'stances': {stance: {'reference': None, 'preparation': None, 'idle_frame': None}
                         for stance in stances},
@@ -75,19 +74,31 @@ def initialize(workspace, reference, stances, actions=(), side=256):
     return save(workspace, plan)
 
 
-def add_action(workspace, stances, description, motion_type, environment):
+def add_action(workspace, stances, description, motion_type, environment, pipeline=None, idle=False):
     plan = load(workspace)
     stances = choices(stances, STANCES)
     if not description.strip() or motion_type not in MOTION_TYPES or environment not in ENVIRONMENTS:
         raise ValueError('A description, valid motion type and explicit ground/air environment are required')
-    # A newly selected stance gets its own Idle before any added action.
+    expected='airborne' if environment=='air' else 'standard'
+    pipeline=expected if pipeline is None else pipeline
+    if pipeline not in (expected,'jump') or (pipeline=='jump' and
+            (environment!='air' or motion_type!='hold_end_pose')):
+        raise ValueError('Jump bundles require air and hold_end_pose; other pipelines must match environment')
+    if idle and (environment != 'ground' or motion_type != 'loop' or pipeline != 'standard'):
+        raise ValueError('Idle animation requires a standard ground loop')
     for stance in stances:
         if stance not in plan['stances']:
             plan['stances'][stance] = {'reference': None, 'preparation': None, 'idle_frame': None}
             plan['airborne'][stance] = None
-            plan['tasks'].append(task(stance, 'idle', 'idle', 'loop'))
+        if idle:
+            if not any(t['id'] == f'{stance}-idle' for t in plan['tasks']):
+                plan['tasks'].append(task(stance, 'idle', description.strip(), 'loop'))
+            continue
         if environment == 'air' and not any(t['id'] == f'{stance}-jump' for t in plan['tasks']):
-            plan['tasks'].append(task(stance, 'jump', 'jump', 'hold_end_pose', 'air', 'jump'))
+            plan['tasks'].append(task(stance, 'jump', description.strip() if pipeline=='jump' else 'jump',
+                                      'hold_end_pose', 'air', 'jump'))
+    if idle or pipeline=='jump':
+        return save(workspace,plan)
     number = 1
     while any(t['action'] == f'custom-{number:03d}' for t in plan['tasks']):
         number += 1
@@ -128,8 +139,9 @@ def update_task(workspace, identifier, status, artifacts=None):
             if not profile:
                 raise ValueError('Record the corresponding airborne reference first')
             file_path(profile)
-        elif current['depends_on'] and not all(plan['stances'][current['stance']].values()):
-            raise ValueError('Record the stance reference, preparation and usable Idle frame first')
+        elif (current['entry_reference'] in ('prepared_stance', 'idle') and
+              status == 'running' and not all(plan['stances'][current['stance']].values())):
+            raise ValueError('Record the stance reference, preparation and video first frame first')
     assets = dict(current['artifacts'])
     for key, value in (artifacts or {}).items():
         if not re.fullmatch(r'[a-z][a-z0-9_]*', key):
@@ -149,13 +161,15 @@ def main():
     init = commands.add_parser('init')
     init.add_argument('--reference', required=True)
     init.add_argument('--stances', nargs='+', choices=STANCES, required=True)
-    init.add_argument('--actions', nargs='*', choices=tuple(k for k in ACTIONS if k != 'idle'), default=[])
+    init.add_argument('--actions', nargs='*', choices=ACTIONS, default=[])
     init.add_argument('--side', type=int, default=256)
     add = commands.add_parser('add')
     add.add_argument('--stances', nargs='+', choices=STANCES, required=True)
     add.add_argument('--description', required=True)
     add.add_argument('--motion-type', choices=MOTION_TYPES, required=True)
     add.add_argument('--environment', choices=ENVIRONMENTS, required=True)
+    add.add_argument('--pipeline',choices=('standard','airborne','jump'))
+    add.add_argument('--idle', action='store_true')
     airborne = commands.add_parser('record-airborne')
     airborne.add_argument('--stance', choices=STANCES, required=True)
     airborne.add_argument('--profile', required=True)
@@ -173,7 +187,8 @@ def main():
         if args.command == 'init':
             result = initialize(args.workspace, args.reference, args.stances, args.actions, args.side)
         elif args.command == 'add':
-            result = add_action(args.workspace, args.stances, args.description, args.motion_type, args.environment)
+            result = add_action(args.workspace, args.stances, args.description, args.motion_type,
+                                args.environment, args.pipeline, args.idle)
         elif args.command == 'record-airborne':
             result = record_airborne(args.workspace, args.stance, args.profile)
         elif args.command == 'record-stance':

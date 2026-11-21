@@ -1,16 +1,18 @@
 # 跳躍與空中處理（供 Codex 執行）
 
+正常執行使用 [執行計畫與資料流](execution.md)，本頁定義該階段的規則與底層介面，不另寫工作區腳本串接。
+
 ## 路徑與責任
 
 先讀取[角色與動畫計畫](character-plan.md)的環境規則。只有明確的空中任務與跳躍製作請求進入本流程；地面任務保留完整演出的垂直位移，不能因文字內容提到離地或旋轉而套用本流程。
 
-前段依任務的起始基準生成影片並檢查來源完整性；本段只處理明確提供的影片、區間、腰部參考及處理參數，不讀取角色計畫或前段內部目錄。既有影片也能直接使用這些入口。圖片工作流、Refine 提示詞與[影格表指引](spritesheet.md)共用。
+前段依任務的起始基準生成影片並檢查來源完整性；本段只處理明確提供的影片、區間、腰部參考及處理參數，不讀取角色計畫或前段內部目錄。既有影片也能直接使用這些入口。圖片工作流、保留／移除特效的兩版 Refine 提示詞與[影格表指引](spritesheet.md)共用。
 
 地面／空中環境與三種動作類型是兩個獨立維度；前者決定起始基準和是否移除垂直位移，後者決定首尾及結束行為。
 
 ## 跳躍來源與分段
 
-首次建立某姿態的跳躍時，前段使用對應 Idle 來源基準，生成由 Idle 開始、上升、到達頂點、下落、落地緩衝、再回到 Idle 的完整來源影片。提示詞保持同角色、朝向、尺度、鏡頭與留白，讓階段清楚；前段不先執行定位或 Refine。
+首次建立某姿態的跳躍時，前段使用對應站姿首幀，生成由 Idle 開始、上升、到達頂點、下落、落地緩衝、再回到 Idle 的完整來源影片。提示詞保持同角色、朝向、尺度、鏡頭與留白，讓階段清楚；前段不先執行定位或 Refine。
 
 檢視影片概覽後，指定三個原始影格索引：
 
@@ -23,14 +25,14 @@
 大寫參數以下均為本次明確指定的數值，執行前代入，不作固定預設：
 
 ```text
-python scripts/airborne_pipeline.py jump source.mp4 --rise-start RISE_START --apex APEX --fall-end FALL_END --waist-roi X0 Y0 X1 Y1 --rise-count 8 --fall-count 8 --rise-seconds 0.8 --fall-seconds 0.8 --scale RESTORE_SCALE --job work/action/finish-job --output outputs/action --image-profile .local/image-profile.json --prompt-file work/action/refine.txt
+python scripts/airborne_pipeline.py jump source.mp4 --rise-start RISE_START --apex APEX --fall-end FALL_END --waist-roi X0 Y0 X1 Y1 --rise-count 8 --fall-count 8 --rise-seconds 0.8 --fall-seconds 0.8 --scale RESTORE_SCALE --job work/action/finish-job --output outputs/action --image-profile .local/image-profile.json --prompt-file work/action/refine-with-effects.txt --remove-effects-prompt-file work/action/refine-without-effects.txt
 ```
 
-輸出 `rise/`、`fall/` 各含 PNG、GIF、JSON；`jump.json` 記錄本機結果。`airborne-reference/` 保存原始完整切點畫布 `reference.png` 與 `airborne-reference.json`。該 profile 記錄畫布尺寸、腰部參考區域、統一縮回倍率；不得以最終小格或裁切後角色取代完整來源基準。兩段的共用切點只送入圖片工作流一次，整組使用相同第二次裁切，交界像素一致。
+無特效時由正式計畫輸出每段 clean 一版；有特效時輸出 `rise/`、`fall/` 各含 `variants.json` 及 `with_effects/`、`without_effects/` 兩版 PNG、GIF、JSON；`jump.json` 記錄本機結果、`joint_summary` 與原始分段參數，供局部修正後共同重建兩段。`airborne-reference/` 保存原始完整切點畫布 `reference.png` 與 `airborne-reference.json`。該 profile 記錄畫布尺寸、腰部參考區域、統一縮回倍率；不得以最終小格或裁切後角色取代完整來源基準。兩版共用同一批原始選幀、腰部定位與第一次裁切；每版各自處理，該版兩段的共用切點只送入圖片工作流一次，整組使用該版相同的第二次裁切，交界像素一致。不同版本仍各自裁切，不把其中一版處理結果作另一版輸入。
 
 各段的 `shared_crop_source_indices` 記錄共同裁切所用的兩段選格聯集；裁切統計因此可能包含另一段影格，並非只用該段重新裁切。
 
-將兩段 JSON 與來源、profile 寫入跳躍任務產物清單，完成[交付驗證](spritesheet.md#完成與交付驗證)後，再完成任務並執行 `record-airborne`。同姿態的後續空中動作重用此基準及倍率；另一姿態需要自己的基準。
+將兩段雙版本摘要 `rise/variants.json`、`fall/variants.json` 與來源、profile 寫入跳躍任務產物清單，完成[交付驗證](spritesheet.md#完成與交付驗證)後，由執行計畫同步任務及空中基準。同姿態的後續空中動作重用此基準及倍率；另一姿態需要自己的基準。
 
 ## 腰部垂直定位
 
@@ -47,7 +49,7 @@ Codex 在切點原始畫布上指定一次 `waist_roi=[x0,y0,x1,y1]`，範圍以
 前段以保存的完整空中參考圖為影片輸入，維持其畫布尺寸及角色尺度。依所選動作類型描述空中起收姿態與節奏；不自動加入地面起跳、接地或地面 Idle。需要返回起始時，回到同一空中基準。後段與地面共用依動作類型選幀及時間分配的規則，不因非等距選幀而自動縮短來源停留。
 
 ```text
-python scripts/airborne_pipeline.py action source.mp4 --reference-profile outputs/action/airborne-reference/airborne-reference.json --start START --end END --seconds 0.8 --motion-type return_to_start --job work/new-action/finish-job --output outputs/new-action --image-profile .local/image-profile.json --prompt-file work/new-action/refine.txt
+python scripts/airborne_pipeline.py action source.mp4 --reference-profile outputs/action/airborne-reference/airborne-reference.json --start START --end END --seconds 0.8 --motion-type return_to_start --job work/new-action/finish-job --output outputs/new-action --image-profile .local/image-profile.json --prompt-file work/new-action/refine-with-effects.txt --remove-effects-prompt-file work/new-action/refine-without-effects.txt
 ```
 
 未指定 `--scale` 時沿用 profile 的倍率；明確指定才覆寫。來源畫布尺寸須與 profile 一致。此入口不根據動作描述或名稱分流，也不自行建立地面過渡。跳躍流程與追加空中動作使用相同腰部定位及影格整理程式。
@@ -64,8 +66,8 @@ python scripts/airborne_pipeline.py action source.mp4 --reference-profile output
 
 ## 輸出與交付
 
-每段 JSON 包含 `environment=air`、`vertical_alignment`、`anchor_type=waist` 與最終格子座標中的 `anchor_px`。不同動作可能有不同裁切格子尺寸；跨動畫銜接應按共同角色尺度及腰部基準對齊，不能假定格子中心或底端就是角色定位點。需要同尺寸演示時，以各段固定的透明補邊註冊到共用畫布，不逐幀重定位。
+每段各版本的 `animation.json` 包含 `environment=air`、`vertical_alignment`、`anchor_type=waist` 與最終格子座標中的 `anchor_px`。不同動作可能有不同裁切格子尺寸；跨動畫銜接應按共同角色尺度及腰部基準對齊，不能假定格子中心或底端就是角色定位點。需要同尺寸演示時，以各段固定的透明補邊註冊到共用畫布，不逐幀重定位。
 
-Refine 後對照來源與定位結果，確認模型沒有把倒立或側向姿態改正、沒有改變腰部位置，並檢查首尾及衣物、裝備、髮絲。來源本身沒有回到所需姿態時，回報來源品質問題，不替換首尾影格掩蓋接縫。GIF 仍依[交付指引](spritesheet.md)無限重播；引擎中的播放、停留與中斷是另一件事。
+Refine 後對照無特效成品、來源及定位結果，檢查姿勢、腰部位置與角色細節。來源缺少所需結束姿態時，回報來源品質問題。交付來源影片、無特效 GIF、影格表與素材包。跳躍的上升與下落各有 GIF、影格表及對應素材包。GIF 均無限重播。
 
-用共用打包腳本分別打包各段；清單額外明確列出實際使用的空中 profile 及其參考 PNG，兩檔放在同一封存資料夾以保持相對路徑可用。另收錄實際 Refine 提示詞、定位報告及必要的人工修正 JSON。`jump.json` 是本機摘要，不直接當成已可攜的封存報告。
+用共用打包腳本分別打包各段，每段 manifest 的 `animations` 依實際特效列出 clean 或有／無特效兩份 `animation.json`；清單額外明確列出實際使用的空中 profile 及其參考 PNG，兩檔放在同一封存資料夾以保持相對路徑可用。兩版實際 Refine 及逐格修正提示詞由各版報告自動封存，另收錄定位報告及必要的人工修正 JSON。`jump.json` 是本機摘要，不直接當成已可攜的封存報告。

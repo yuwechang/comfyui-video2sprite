@@ -17,7 +17,7 @@ def process(profile_path, image_path, prompt, job, timeout=1800):
     state_path = folder / 'job.json'
     profile = json.loads(Path(profile_path).read_text(encoding='utf-8'))
     fingerprint = hashlib.sha256(Path(profile_path).read_bytes() + Path(image_path).read_bytes()
-                                 + prompt.encode('utf-8')).hexdigest()
+                                 + (prompt.encode('utf-8') if prompt is not None else b'\x00no-prompt')).hexdigest()
     ws = None
     if state_path.exists():
         state = json.loads(state_path.read_text(encoding='utf-8'))
@@ -28,8 +28,9 @@ def process(profile_path, image_path, prompt, job, timeout=1800):
         if not state.get('prompt_id'):
             raise ValueError('Submission has no confirmed ID; inspect queue before retrying')
     else:
-        graph = g.build_graph(profile, {'image_1': g.upload(profile['url'], image_path),
-                                      'positive_prompt': prompt})
+        values={'image_1':g.upload(profile['url'],image_path)}
+        if prompt is not None:values['positive_prompt']=prompt
+        graph = g.build_graph(profile, values)
         g.save(folder / 'submitted-workflow.json', graph)
         client_id = uuid.uuid4().hex
         base = profile['url'].rstrip('/')
@@ -79,12 +80,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--profile', required=True)
     parser.add_argument('--image', required=True)
-    parser.add_argument('--prompt-file', required=True)
+    parser.add_argument('--prompt-file',help='Omit for non-generative image workflows without text input')
     parser.add_argument('--job', required=True)
     parser.add_argument('--timeout', type=float, default=1800)
     args = parser.parse_args()
     try:
-        state = process(args.profile, args.image, Path(args.prompt_file).read_text(encoding='utf-8'), args.job, args.timeout)
+        state = process(args.profile, args.image, Path(args.prompt_file).read_text(encoding='utf-8') if args.prompt_file else None, args.job, args.timeout)
         print(json.dumps({key: state[key] for key in ('status', 'file', 'image')}, ensure_ascii=False))
     except Exception as exc:
         print(json.dumps({'error': str(exc)}, ensure_ascii=False))

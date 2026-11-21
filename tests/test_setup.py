@@ -11,6 +11,20 @@ spec.loader.exec_module(setup)
 
 
 class SetupTests(unittest.TestCase):
+    def test_fixed_modern_combo_rejected_before_writing_profile(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)
+            graph={'1':{'class_type':'Editor','inputs':{'image':'placeholder','text':'edit','mode':'unsupported'}}}
+            mapping={'bindings':{'image_1':[{'node':'1','input':'image'}],
+                                 'positive_prompt':[{'node':'1','input':'text'}]},'output_node':'1'}
+            schema={'Editor':{'input':{'required':{'image':['COMBO',{'options':['actual.png']}],
+                'text':['STRING'],'mode':['COMBO',{'options':['auto','full']}]}},'output_node':True}}
+            (root/'api.json').write_text(json.dumps(graph));(root/'map.json').write_text(json.dumps(mapping))
+            with patch.object(setup,'fetch',return_value=schema):
+                with self.assertRaisesRegex(ValueError,'Invalid fixed option'):
+                    setup.bind(root/'api.json',root/'map.json','http://localhost',root/'profile.json','image')
+            self.assertFalse((root/'profile.json').exists())
+
     def test_image_binding_without_video_settings(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

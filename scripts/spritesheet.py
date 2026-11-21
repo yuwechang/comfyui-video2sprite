@@ -283,6 +283,8 @@ def finish(processed_sheet, report, output):
               'sheet': str(sheet_path.resolve()), 'preview': str(gif_path.resolve()),
               'verified': {'dimensions': True, 'cell_alpha': True, 'gif_transparency': True,
                            'gif_duration_ms': actual_duration}}
+    if 'playback' in report.get('sampling', {}):
+        result['playback'] = report['sampling']['playback']
     (folder / 'animation.json').write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding='utf-8')
     return result
 

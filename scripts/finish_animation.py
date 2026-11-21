@@ -1,5 +1,7 @@
 """Sample, refine each cropped frame, crop transparent results and pack previews."""
 import argparse
+import copy
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -7,22 +9,110 @@ from PIL import Image
 from process_image import process
 from spritesheet import prepare, finish, common_crop, pack, scale_frames
 from generate import save
+from job_contract import guard_inputs
+
+EFFECT_VARIANTS = ('with_effects', 'without_effects')
+
+
+def variant_summary(variants, output):
+    """Persist paired delivery reports only after both variants are complete."""
+    if set(variants) not in ({'clean'}, set(EFFECT_VARIANTS)):
+        raise ValueError('Use clean only, or both effect variants')
+    order = ['clean'] if set(variants) == {'clean'} else list(EFFECT_VARIANTS)
+    first = variants[order[0]]
+    for report in variants.values():
+        for field in ('sample_indices', 'frame_durations_ms', 'motion_type', 'frame_scale'):
+            if report.get(field) != first.get(field):
+                raise ValueError(f'Effect variants differ in {field}')
+    result = {'variants': variants, 'display_order': order,
+              'sample_indices': first['sample_indices'],
+              'frame_durations_ms': first['frame_durations_ms'],
+              'duration_ms': first['duration_ms']}
+    save(Path(output) / 'variants.json', result)
+    return result
+
+
+def finish_variants(video, max_side, image_profile, prompt_file, remove_effects_prompt_file,
+                    job, output, count, start, end, seconds, loop, tolerance=32, scale=1,
+                    motion_type=None, alpha_cutoff=8, lead_start=None, quality='compact',
+                    lead_refresh_ms=160,background_profile=None):
+    guard_inputs(job, {'video': video, 'profile': image_profile, 'keep': prompt_file,
+                       'remove': remove_effects_prompt_file,'background_profile':background_profile},
+                 dict(count=count, start=start, end=end, seconds=seconds, loop=loop,
+                      tolerance=tolerance, scale=scale, motion_type=motion_type,
+                      lead_start=lead_start, quality=quality, lead_refresh_ms=lead_refresh_ms))
+    report = prepare(video, Path(job) / 'shared', None, count, start, end, seconds, loop,
+                     tolerance, scale, motion_type, lead_start, quality, lead_refresh_ms)
+    return finish_prepared_variants(report, image_profile, prompt_file, remove_effects_prompt_file,
+                                    job, output, max_side, alpha_cutoff,background_profile)
+
+
+def finish_prepared_variants(report, image_profile, prompt_file, remove_effects_prompt_file,
+                             job, output, max_side=None, alpha_cutoff=8, background_profile=None,refine_required=True):
+    """Branch immutable selected source frames, never an already refined variant."""
+    validate_alpha_cutoff(alpha_cutoff)
+    if type(refine_required) is not bool:raise ValueError('refine_required must be a reviewed boolean')
+    if not refine_required and (not background_profile or remove_effects_prompt_file):
+        raise ValueError('Skipping Refine requires background_profile and no effect-editing branch')
+    if max_side is not None and max_side < 2:
+        raise ValueError('Target maximum side must be at least 2 pixels')
+    prompts = (dict(zip(EFFECT_VARIANTS, (prompt_file, remove_effects_prompt_file)))
+               if remove_effects_prompt_file else {'clean': prompt_file})
+    for path in prompts.values():
+        if refine_required and (not path or not Path(path).read_text(encoding='utf-8-sig').strip()):
+            raise ValueError('Refine requires a nonempty prompt')
+    shared = copy.deepcopy(report)
+    contract = {'selection': shared,
+                'profile': hashlib.sha256(Path(image_profile).read_bytes()).hexdigest(),
+                'prompts': {name: Path(path).read_text(encoding='utf-8-sig') if refine_required else None for name, path in prompts.items()}}
+    contract = json.loads(json.dumps(contract))
+    if background_profile:
+        contract['background_profile']=hashlib.sha256(Path(background_profile).read_bytes()).hexdigest()
+    contract['refine_required']=refine_required
+    contract_path = Path(job) / 'variants-job.json'
+    if contract_path.exists() and json.loads(contract_path.read_text(encoding='utf-8')) != contract:
+        raise ValueError('Variant job inputs changed; use a new job directory')
+    save(contract_path, contract)
+    save(Path(job) / 'shared-selection.json', shared)
+    (Path(output) / 'variants.json').unlink(missing_ok=True)
+    variants = {}
+    for name, path in prompts.items():
+        prepared = copy.deepcopy(shared)
+        prepared['effect_variant'] = name
+        variants[name] = finish_prepared(prepared, image_profile, path,
+                                         Path(job) / name, Path(output) / name,
+                                         max_side, alpha_cutoff, background_profile,refine_required)
+    return variant_summary(variants, output)
 
 
 def finish_action(video, max_side, image_profile, prompt_file, job, output,
                   count, start, end, seconds, loop, tolerance=32, scale=1, motion_type=None,
-                  alpha_cutoff=8, lead_start=None, quality='compact', lead_refresh_ms=160):
+                  alpha_cutoff=8, lead_start=None, quality='compact', lead_refresh_ms=160,background_profile=None):
     validate_alpha_cutoff(alpha_cutoff)
+    guard_inputs(job, {'video': video, 'profile': image_profile, 'prompt': prompt_file,'background_profile':background_profile},
+                 dict(count=count, start=start, end=end, seconds=seconds, loop=loop,
+                      tolerance=tolerance, scale=scale, motion_type=motion_type,
+                      lead_start=lead_start, quality=quality, lead_refresh_ms=lead_refresh_ms))
     # The optional size cap belongs to the final transparent crop, not the input.
     report = prepare(video, job, None, count, start, end, seconds, loop, tolerance, scale, motion_type,
                      lead_start, quality, lead_refresh_ms)
-    return finish_prepared(report, image_profile, prompt_file, job, output, max_side, alpha_cutoff)
+    return finish_prepared(report, image_profile, prompt_file, job, output, max_side, alpha_cutoff,background_profile)
 
 
-def finish_prepared(report, image_profile, prompt_file, job, output, max_side=None, alpha_cutoff=8):
+def finish_prepared(report, image_profile, prompt_file, job, output, max_side=None, alpha_cutoff=8,
+                    background_profile=None,refine_required=True):
     """Refine only explicitly prepared selected frames; independent of their source pipeline."""
     validate_alpha_cutoff(alpha_cutoff)
-    prompt = Path(prompt_file).read_text(encoding='utf-8')
+    if type(refine_required) is not bool or (not refine_required and not background_profile):
+        raise ValueError('Skipping Refine requires a reviewed boolean and background_profile')
+    prompt_snapshot = Path(job) / 'refine-prompt.txt'
+    prompt = None
+    if refine_required:
+        prompt = Path(prompt_file).read_text(encoding='utf-8-sig')
+        prompt_snapshot.parent.mkdir(parents=True, exist_ok=True)
+        if prompt_snapshot.exists() and prompt_snapshot.read_text(encoding='utf-8') != prompt:
+            raise ValueError('Refinement prompt changed; use a new job directory')
+        prompt_snapshot.write_text(prompt, encoding='utf-8')
     profile = json.loads(Path(image_profile).read_text(encoding='utf-8'))
     alignment = profile.get('input_alignment', {'width': 1, 'height': 1})
     multiples = [alignment[dimension] for dimension in ('width', 'height')]
@@ -39,7 +129,12 @@ def finish_prepared(report, image_profile, prompt_file, job, output, max_side=No
             canvas.paste(source.convert('RGB'), (0, 0))
             image_input = frame_job / 'input.png'
             canvas.save(image_input)
-        processed = process(image_profile, image_input, prompt, frame_job / 'image-job')
+        processed = (process(image_profile, image_input, prompt, frame_job / 'image-job')
+                     if refine_required else {'file':str(image_input)})
+        refinement_file=processed['file']
+        if background_profile:
+            from background_removal import remove_background
+            processed=remove_background(background_profile,refinement_file,frame_job/'background-job')
         with Image.open(processed['file']) as source:
             if source.size != padded_size:
                 raise ValueError(f'Frame {i}: image workflow changed dimensions to {source.size}')
@@ -55,6 +150,22 @@ def finish_prepared(report, image_profile, prompt_file, job, output, max_side=No
         records.append({'source_frame_index': report['sample_indices'][i],
                         'input': str(image_input.resolve()), 'refined': str(target.resolve()),
                         'padding': [padded_size[0]-size[0], padded_size[1]-size[1]]})
+        if background_profile:
+            records[-1]['before_background_removal']=str(Path(refinement_file).resolve())
+            records[-1]['background_job']=str((frame_job/'background-job'/'job.json').resolve())
+    report['image_edit_performed']=refine_required
+    if refine_required:report['refinement_prompt'] = str(prompt_snapshot.resolve())
+    if background_profile:report['background_profile']=str(Path(background_profile).resolve())
+    return finish_refined(report, records, job, output, max_side, alpha_cutoff)
+
+
+def finish_refined(report, records, job, output, max_side=None, alpha_cutoff=8):
+    """Rebuild delivery from accepted refinement records without submitting images."""
+    report = copy.deepcopy(report)
+    refined = []
+    for record in records:
+        with Image.open(record['refined']) as image:
+            refined.append(image.convert('RGBA'))
     frames, crop = crop_refined(refined, max_side, alpha_cutoff)
     final_paths = []
     for i, frame in enumerate(frames):
@@ -65,14 +176,21 @@ def finish_prepared(report, image_profile, prompt_file, job, output, max_side=No
     sheet, columns, rows = pack(frames)
     target = Path(job) / 'refined-sheet.png'
     sheet.save(target)
-    first_crop = {key: report[key] for key in
+    first_crop = report.get('first_crop') or {key: report[key] for key in
                   ('crop_box', 'source_size', 'source_content_boxes', 'bottom_padding')}
-    first_crop['scale'] = report.get('scale', 1)
+    first_crop.setdefault('scale', report.get('scale', 1))
     report.update({'first_crop': first_crop,
                    'refinement': records, 'final_frames': final_paths,
                    'refined_crop': crop, 'cell_width': frames[0].width,
                    'cell_height': frames[0].height, 'columns': columns, 'rows': rows,
                    'bottom_padding': 1, 'target_max_side': max_side})
+    alignment = report.get('vertical_alignment')
+    point = alignment['reference_point_aligned'] if alignment else report.get('camera_alignment',{}).get('reference_origin_aligned',[0,0])
+    report['anchor_type'] = 'waist' if alignment else 'source_origin'
+    report['anchor_px'] = [((point[a] * report.get('frame_scale', 1) - first_crop['crop_box'][a])
+                            * first_crop['scale'] - crop['crop_box'][a]) * crop['scale']
+                           for a in (0, 1)]
+    report['delivery_scale'] = report.get('frame_scale', 1) * first_crop['scale'] * crop['scale']
     save(Path(job) / 'selection.json', report)
     return finish(target, report, output)
 
@@ -127,9 +245,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('video')
     parser.add_argument('--image-profile', required=True)
+    parser.add_argument('--background-profile',default='.local/background-profile.json')
     parser.add_argument('--output', required=True)
     parser.add_argument('--job', required=True)
     parser.add_argument('--prompt-file', required=True)
+    parser.add_argument('--remove-effects-prompt-file',
+                        help='Produce both variants; --prompt-file preserves effects, this prompt removes them')
     parser.add_argument('--max-side', type=int, help='Optional cap on the final cropped cell')
     parser.add_argument('--scale', type=float, default=1, help='Uniform frame scale before common crop')
     parser.add_argument('--background-tolerance', type=int, default=32)
@@ -147,11 +268,18 @@ def main():
                         help='Use loop sampling for manual intervals without --motion-type; GIF always repeats')
     args = parser.parse_args()
     try:
-        result = finish_action(args.video, args.max_side, args.image_profile, args.prompt_file,
-                               args.job, args.output, args.count, args.start, args.end,
-                               args.seconds, args.loop, args.background_tolerance, args.scale,
-                               args.motion_type, args.alpha_cutoff, args.lead_start, args.quality, args.lead_refresh_ms)
-        print(json.dumps({key: result[key] for key in
+        options = (args.job, args.output, args.count, args.start, args.end,
+                   args.seconds, args.loop, args.background_tolerance, args.scale,
+                   args.motion_type, args.alpha_cutoff, args.lead_start, args.quality, args.lead_refresh_ms,args.background_profile)
+        if args.remove_effects_prompt_file:
+            result = finish_variants(args.video, args.max_side, args.image_profile, args.prompt_file,
+                                     args.remove_effects_prompt_file, *options)
+            print(json.dumps({'variants': {name: str((Path(args.output) / name / 'animation.json').resolve())
+                                           for name in EFFECT_VARIANTS},
+                              'summary': str((Path(args.output) / 'variants.json').resolve())}))
+        else:
+            result = finish_action(args.video, args.max_side, args.image_profile, args.prompt_file, *options)
+            print(json.dumps({key: result[key] for key in
                           ('frames', 'cell_width', 'cell_height', 'columns', 'rows', 'sheet', 'preview', 'verified')},
                          ensure_ascii=False))
     except Exception as exc:

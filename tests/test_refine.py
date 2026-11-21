@@ -11,6 +11,24 @@ import process_image
 
 
 class RefineTests(unittest.TestCase):
+    def test_mask_workflow_does_not_require_or_inject_a_text_prompt(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)
+            Image.new('RGB',(8,8)).save(root/'input.png')
+            workflow={'1':{'class_type':'LoadImage','inputs':{'image':'old.png'}},
+                      '2':{'class_type':'SaveImage','inputs':{'images':['1',0]}}}
+            profile={'url':'http://localhost:8188','workflow':workflow,'output_node':'2',
+                     'bindings':{'image_1':[{'node':'1','input':'image'}]}}
+            (root/'profile.json').write_text(json.dumps(profile))
+            with patch.object(process_image.g,'upload',return_value='uploaded.png'), \
+                    patch('websocket.create_connection',side_effect=OSError('offline')), \
+                    patch.object(process_image.g,'request',return_value={'node_errors':{'test':'stop'}}):
+                with self.assertRaises(ValueError):
+                    process_image.process(root/'profile.json',root/'input.png',None,root/'job')
+            submitted=json.loads((root/'job'/'submitted-workflow.json').read_text())
+            self.assertEqual(submitted['1']['inputs'],{'image':'uploaded.png'})
+            self.assertEqual(submitted['2'],workflow['2'])
+
     def frames(self):
         frames = []
         for box in [(10, 5, 14, 17), (13, 3, 19, 16)]:
@@ -98,7 +116,8 @@ class RefineTests(unittest.TestCase):
                 frame.save(target)
                 return {'file':str(target)}
             with patch.object(pipeline,'prepare',side_effect=lambda *a:dict(report)), patch.object(pipeline,'process',side_effect=execute):
-                args=('source.mp4',None,root/'profile.json',root/'prompt.txt',root/'job',root/'out',2,4,9,.2,False)
+                (root/'source.mp4').write_bytes(b'mocked video')
+                args=(root/'source.mp4',None,root/'profile.json',root/'prompt.txt',root/'job',root/'out',2,4,9,.2,False)
                 with self.assertRaisesRegex(RuntimeError,'interrupted'):pipeline.finish_action(*args)
                 result=pipeline.finish_action(*args)
             self.assertNotEqual(calls[0],calls[1])
@@ -135,7 +154,8 @@ class RefineTests(unittest.TestCase):
                 with patch.object(pipeline, 'prepare', return_value=report), \
                      patch.object(pipeline, 'process', return_value={'file': str(root/'result.png')}):
                     with self.assertRaisesRegex(ValueError, message):
-                        pipeline.finish_action('video', None, root/'profile.json', root/'prompt.txt',
+                        (root/'video').write_bytes(b'mocked video')
+                        pipeline.finish_action(root/'video', None, root/'profile.json', root/'prompt.txt',
                                                root/'job', root/'out', 2, 0, 1, .2, False)
 
     def test_process_cache_rejects_changed_input(self):

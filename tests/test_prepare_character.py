@@ -98,7 +98,7 @@ class PreparationTests(unittest.TestCase):
     def test_small_source_and_native_scale(self):
         small = pc.generation_layout(256, 64)
         self.assertEqual((small['side'], small['restore_scale']), (256, 1))
-        self.assertEqual((small['width'], small['height']), (512, 416))
+        self.assertEqual((small['width'], small['height']), (512, 448))
         source = character((90,180))
         g = pc.generation_layout(128, max(source.size))
         fitted, info = pc.place_at_scale(source, g, max(source.size))
@@ -123,13 +123,13 @@ class PreparationTests(unittest.TestCase):
             self.assertEqual(result['restore_scale'], 128/result['geometry']['side'])
 
     def test_extra_layout_preserves_base_and_bottom(self):
-        self.assertEqual((pc.layout(256, expand_horizontal=1)['width'], pc.layout(256, expand_horizontal=1)['height']), (640, 416))
-        self.assertEqual((pc.layout(256, expand_top=1)['width'], pc.layout(256, expand_top=1)['height']), (512, 480))
+        self.assertEqual((pc.layout(256, expand_horizontal=1)['width'], pc.layout(256, expand_horizontal=1)['height']), (640, 448))
+        self.assertEqual((pc.layout(256, expand_top=1)['width'], pc.layout(256, expand_top=1)['height']), (512, 512))
         for side in (65, 128, 255, 256):
             g = pc.layout(side, 32, 64, 2, 1)
             self.assertEqual(g['box'][2]-g['box'][0], side)
             self.assertEqual(g['box'][3]-g['box'][1], side)
-            self.assertEqual(g['height']-g['box'][3], __import__('math').ceil(side*.07))
+            self.assertEqual(g['height']-g['box'][3], __import__('math').ceil(side*.15))
             self.assertEqual(g['width'] % 32, 0)
             self.assertEqual(g['height'] % 64, 0)
         with self.assertRaises(ValueError):
@@ -186,14 +186,47 @@ class PreparationTests(unittest.TestCase):
                 report = json.loads((root/'more/preparation.json').read_text())
                 self.assertEqual(report['geometry']['expand_horizontal'], 2)
 
+    def test_bottom_expansion_preserves_subject_and_is_idempotent(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);character().save(root/'input.png')
+            args=argparse.Namespace(image=str(root/'input.png'),side=128,multiple_x=32,multiple_y=32,
+                image_profile='unused',job=str(root/'job'),output=str(root/'base'))
+            with patch.object(pc,'process',side_effect=AssertionError('No AI needed')):
+                base=pc.prepare(args)
+                args.image=base['prepared'];args.expand_bottom=2;args.output=str(root/'expanded')
+                expanded=pc.prepare(args)
+                g0,g1=base['geometry'],expanded['geometry']
+                self.assertEqual(g0['side'],g1['side'])
+                self.assertGreater(g1['margins']['bottom'],g0['margins']['bottom'])
+                with Image.open(base['prepared']) as before,Image.open(expanded['prepared']) as after:
+                    dx,dy=g1['box'][0]-g0['box'][0],g1['box'][3]-g0['box'][3]
+                    from PIL import ImageChops
+                    box=ImageChops.difference(before,Image.new('RGB',before.size,tuple(base['background_rgb']))).getbbox()
+                    shifted=(box[0]+dx,box[1]+dy,box[2]+dx,box[3]+dy)
+                    self.assertGreaterEqual(min(shifted[:2]),0)
+                    self.assertLessEqual(shifted[2],after.width)
+                    self.assertLessEqual(shifted[3],after.height)
+                    self.assertEqual(before.crop(box).tobytes(),after.crop(shifted).tobytes())
+                args.image=expanded['prepared'];args.preparation=str(root/'expanded/preparation.json')
+                args.expand_bottom=None;args.output=str(root/'repeat')
+                repeated=pc.prepare(args)
+                self.assertEqual(Path(expanded['prepared']).read_bytes(),Path(repeated['prepared']).read_bytes())
+                self.assertEqual(repeated['geometry']['expand_bottom'],2)
+
+    def test_bottom_expansion_restores_the_same_delivery_scale_under_budget(self):
+        g=pc.generation_layout(512,1536,expand_bottom=2,expand_horizontal=1,max_pixels=1000000)
+        self.assertAlmostEqual(g['side']*g['restore_scale'],512)
+        self.assertGreater(g['margins']['bottom'],g['side']*.5)
+        with self.assertRaises(ValueError):pc.layout(512,expand_bottom=-1)
+
     def test_layout_and_alignment(self):
         g = pc.layout(256)
-        self.assertEqual((g['width'], g['height']), (512, 416))
-        self.assertEqual(g['box'], [128, 142, 384, 398])
-        self.assertEqual(g['margins']['bottom'], 18)
+        self.assertEqual((g['width'], g['height']), (512, 448))
+        self.assertEqual(g['box'], [128, 153, 384, 409])
+        self.assertEqual(g['margins']['bottom'], 39)
         g = pc.layout(128)
         self.assertEqual((g['width'], g['height']), (256, 224))
-        self.assertEqual(g['margins']['bottom'], 9)
+        self.assertEqual(g['margins']['bottom'], 20)
         for side in (65, 127, 192, 256):
             g = pc.layout(side, 32, 64)
             self.assertEqual(g['width'] % 32, 0)

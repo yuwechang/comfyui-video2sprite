@@ -19,18 +19,18 @@ class CharacterPlanTests(unittest.TestCase):
     def init(self, stances=('normal',), actions=()):
         return plans.initialize(self.root, self.reference, stances, actions)
 
-    def test_two_stances_expand_all_actions_and_idle_first(self):
+    def test_two_stances_expand_only_requested_actions(self):
         plan = self.init(('normal', 'combat', 'normal'), ('walk', 'death', 'walk'))
         self.assertEqual([t['id'] for t in plan['tasks']],
-                         ['normal-idle', 'combat-idle', 'normal-walk', 'combat-walk',
+                         ['normal-walk', 'combat-walk',
                           'normal-death', 'combat-death'])
         self.assertEqual(plan['facing'], 'right')
         self.assertEqual({t['motion_type'] for t in plan['tasks'] if t['action'] == 'death'}, {'hold_end_pose'})
-        self.assertEqual(len({t['job'] for t in plan['tasks']}), 6)
-        self.assertEqual(len({t['output'] for t in plan['tasks']}), 6)
+        self.assertEqual(len({t['job'] for t in plan['tasks']}), 4)
+        self.assertEqual(len({t['output'] for t in plan['tasks']}), 4)
 
     def test_combat_only_idle_does_not_create_normal_stance(self):
-        plan = self.init(('combat',))
+        plan = self.init(('combat',), ('idle',))
         self.assertEqual([t['id'] for t in plan['tasks']], ['combat-idle'])
         self.assertEqual(list(plan['stances']), ['combat'])
 
@@ -40,38 +40,26 @@ class CharacterPlanTests(unittest.TestCase):
             plans.initialize(self.root, self.reference, ['combat'])
         self.assertEqual(plans.load(self.root), original)
 
-    def test_add_preserves_settings_and_builds_missing_idle_once(self):
+    def test_add_preserves_settings_and_does_not_schedule_idle(self):
         self.init()
         plan = plans.add_action(self.root, ['normal', 'combat'], '動作描述甲', 'return_to_start', 'ground')
         self.assertEqual([t['id'] for t in plan['tasks']],
-                         ['normal-idle', 'combat-idle', 'normal-custom-001', 'combat-custom-001'])
+                         ['normal-custom-001', 'combat-custom-001'])
         plan = plans.add_action(self.root, ['combat'], '動作描述乙', 'return_to_start', 'ground')
-        self.assertEqual(sum(t['id'] == 'combat-idle' for t in plan['tasks']), 1)
+        self.assertEqual(sum(t['id'] == 'combat-idle' for t in plan['tasks']), 0)
         self.assertEqual(plan['tasks'][-1]['id'], 'combat-custom-002')
         self.assertEqual(plan['side'], 256)
         self.assertEqual(plan['reference'], str(self.reference.resolve()))
 
-    def test_non_idle_waits_for_completed_idle_and_saved_stance_assets(self):
-        self.init(actions=['walk'])
-        with self.assertRaisesRegex(ValueError, 'dependency'):
-            plans.update_task(self.root, 'normal-walk', 'running')
-        with self.assertRaisesRegex(ValueError, 'source_video'):
-            plans.update_task(self.root, 'normal-idle', 'completed')
-        assets = {'source_video': str(self.reference), 'animation': str(self.reference)}
-        plans.update_task(self.root, 'normal-idle', 'completed', assets)
+    def test_ground_action_only_requires_prepared_stance(self):
+        self.init(('normal', 'combat'), ['walk'])
         with self.assertRaisesRegex(ValueError, 'Record the stance'):
             plans.update_task(self.root, 'normal-walk', 'running')
         plans.record_stance(self.root, 'normal', self.reference, self.reference, self.reference)
         plan = plans.update_task(self.root, 'normal-walk', 'running')
-        self.assertEqual(plan['tasks'][1]['status'], 'running')
-        self.assertEqual(plans.load(self.root), plan)
-
-    def test_stance_dependencies_are_not_interchangeable(self):
-        self.init(('normal', 'combat'), ['run'])
-        plans.update_task(self.root, 'normal-idle', 'completed',
-                          {'source_video': self.reference, 'animation': self.reference})
-        with self.assertRaisesRegex(ValueError, 'dependency'):
-            plans.update_task(self.root, 'combat-run', 'running')
+        self.assertEqual(plan['tasks'][0]['status'], 'running')
+        with self.assertRaisesRegex(ValueError, 'Record the stance'):
+            plans.update_task(self.root, 'combat-walk', 'running')
 
     def test_invalid_add_does_not_change_saved_plan(self):
         self.init()
@@ -83,7 +71,7 @@ class CharacterPlanTests(unittest.TestCase):
             self.assertEqual(plans.load(self.root), original)
 
     def test_missing_artifact_does_not_change_progress(self):
-        original = self.init()
+        original = self.init(actions=['idle'])
         with self.assertRaisesRegex(ValueError, 'Missing file'):
             plans.update_task(self.root, 'normal-idle', 'completed',
                               {'source_video': self.root/'missing', 'animation': self.reference})
@@ -96,8 +84,8 @@ class CharacterPlanTests(unittest.TestCase):
             plan = plans.add_action(self.root, ['combat'], description, 'return_to_start', 'ground')
             task = plan['tasks'][-1]
             self.assertEqual((task['pipeline'], task['entry_reference'], task['vertical_alignment']),
-                             ('standard', 'idle', 'none'))
-            self.assertEqual(task['depends_on'], ['combat-idle'])
+                             ('standard', 'prepared_stance', 'none'))
+            self.assertEqual(task['depends_on'], [])
             self.assertFalse(any(t['action']=='jump' for t in plan['tasks']))
         plan = plans.add_action(self.root, ['combat'], description, 'return_to_start', 'air')
         task = plan['tasks'][-1]
@@ -109,7 +97,22 @@ class CharacterPlanTests(unittest.TestCase):
         plan = self.init(('normal', 'combat'), ['jump'])
         tasks = [t for t in plan['tasks'] if t['pipeline']=='jump']
         self.assertEqual([t['id'] for t in tasks], ['normal-jump', 'combat-jump'])
-        self.assertTrue(all(t['entry_reference']=='idle' and t['vertical_alignment']=='waist' for t in tasks))
+        self.assertTrue(all(t['entry_reference']=='prepared_stance' and t['vertical_alignment']=='waist' for t in tasks))
+
+    def test_explicit_base_bundle_does_not_add_an_airborne_custom_action(self):
+        self.init(('combat',))
+        plan=plans.add_action(self.root,['combat'],'base phases','hold_end_pose','air',pipeline='jump')
+        self.assertEqual([t['id'] for t in plan['tasks']],['combat-jump'])
+        self.assertEqual(plan['tasks'][-1]['entry_reference'],'prepared_stance')
+        self.assertEqual(plan['tasks'][-1]['description'],'base phases')
+        again=plans.add_action(self.root,['combat'],'base phases','hold_end_pose','air',pipeline='jump')
+        self.assertEqual(len(again['tasks']),1)
+
+    def test_explicit_pipeline_cannot_override_selected_environment(self):
+        self.init()
+        for pipeline in ('airborne','jump'):
+            with self.assertRaises(ValueError):
+                plans.add_action(self.root,['normal'],'motion','hold_end_pose','ground',pipeline=pipeline)
 
     def test_air_requires_completed_jump_and_recorded_reference(self):
         self.init()
@@ -117,8 +120,6 @@ class CharacterPlanTests(unittest.TestCase):
         current = plan['tasks'][-1]['id']
         with self.assertRaisesRegex(ValueError, 'dependency'):
             plans.update_task(self.root, current, 'running')
-        plans.update_task(self.root, 'normal-idle', 'completed',
-                          {'source_video': self.reference, 'animation': self.reference})
         plans.record_stance(self.root, 'normal', self.reference, self.reference, self.reference)
         plans.update_task(self.root, 'normal-jump', 'completed',
                           {key:self.reference for key in ('source_video','rise_animation','fall_animation','airborne_profile')})
