@@ -16,7 +16,7 @@
 
 1. **來源影片**
 
-   [播放原始踢擊影片](source.mp4)
+   [在瀏覽器播放原始 MP4](https://cdn.jsdelivr.net/gh/yuwechang/comfyui-video2sprite@ae6133f/examples/right-facing-kick/source.mp4)
 
 2. **無特效 GIF**
 
