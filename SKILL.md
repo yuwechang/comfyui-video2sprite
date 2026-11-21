@@ -47,7 +47,7 @@ description: 使用本機 ComfyUI 將角色參考圖製作成各姿態的 Idle �
 
 觀察到地面來源有垂直鏡頭漂移且具可靠固定背景時，選幀後、Refine 前依 [背景鏡頭補償](references/camera-alignment.md) 處理；不以固定人體部位代替背景參照。
 
-依[交付指引](references/execution.md#文件接續追加及交付)展示來源影片、無特效 GIF、影格表與素材 ZIP。
+依[交付指引](references/execution.md#文件接續追加及交付)展示來源影片、GIF 預覽、影格表與素材 ZIP。
 
 完成本次清單並交付 ZIP 後，另起一段提示：「想追加動作，可以直接說『再來我想要產生 XXX 動作』。」
 

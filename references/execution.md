@@ -167,7 +167,7 @@ python scripts/execution_plan.py --plan work/execution.json extend --character-p
 在聊天中依下列順序交付本次要求的動作：
 
 1. 直接嵌入來源影片原檔，讓使用者在聊天中播放。
-2. 直接嵌入無特效 GIF。
+2. 直接嵌入GIF 預覽。
 3. 在 GIF 下方直接嵌入 Sprite Sheet 圖片。
 4. 最後提供素材 ZIP 的下載連結。
 

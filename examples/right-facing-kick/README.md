@@ -18,9 +18,9 @@
 
    [在瀏覽器播放原始 MP4](https://cdn.jsdelivr.net/gh/yuwechang/comfyui-video2sprite@ae6133f/examples/right-facing-kick/source.mp4)
 
-2. **無特效 GIF**
+2. **GIF 預覽**
 
-   ![朝右踢擊的無特效 GIF](preview.gif)
+   ![朝右踢擊的GIF 預覽](preview.gif)
 
 3. **Sprite Sheet**
 
