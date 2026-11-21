@@ -4,13 +4,17 @@
 
 ## 用途與成品
 
+[循環（`loop`）範例：朝右原地走路](examples/right-facing-walk-loop/README.md)
+
+![朝右原地走路 GIF 預覽](examples/right-facing-walk-loop/preview.gif)
+
 [回到起始姿態（`return_to_start`）範例：朝右地面踢擊](examples/right-facing-kick/README.md)
 
-[循環（`loop`）範例：朝右原地走路](examples/right-facing-walk-loop/README.md)
+![朝右地面踢擊 GIF 預覽](examples/right-facing-kick/preview.gif)
 
 [停在結束姿態（`hold_end_pose`）範例：受擊倒地](examples/right-facing-knockdown/README.md)
 
-![朝右的地面踢擊成品](examples/right-facing-kick/preview.gif)
+![受擊倒地 GIF 預覽](examples/right-facing-knockdown/preview.gif)
 
 ```mermaid
 flowchart TD
