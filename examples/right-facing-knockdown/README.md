@@ -2,6 +2,8 @@
 
 **繁體中文** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [English](README.en.md)
 
+[返回主 README](../../README.md)
+
 沿用踢擊範例的角色與 256 基準大小。角色從朝右的戰鬥站姿開始，受擊後失去平衡、向後倒地，最後維持仰躺姿勢。
 
 ## 使用者怎麼說
