@@ -16,7 +16,7 @@
 
 1. **元動画**
 
-   [元動画 (MP4)](source.mp4)
+   [ブラウザーで MP4 を再生](https://cdn.jsdelivr.net/gh/yuwechang/comfyui-video2sprite@main/examples/right-facing-knockdown/source-compatible.mp4)
 
 2. **GIF プレビュー**
 

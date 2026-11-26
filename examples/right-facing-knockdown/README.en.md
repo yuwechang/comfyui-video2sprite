@@ -16,7 +16,7 @@ This example reuses the approved combat pose and base size of 256. The program s
 
 1. **Source video**
 
-   [Source video (MP4)](source.mp4)
+   [Play MP4 in browser](https://cdn.jsdelivr.net/gh/yuwechang/comfyui-video2sprite@main/examples/right-facing-knockdown/source-compatible.mp4)
 
 2. **GIF preview**
 

@@ -16,7 +16,7 @@ The same illustrated character uses a base size of 256 and a GPT Image side-prof
 
 1. **Source video**
 
-   [Source video (MP4)](source.mp4)
+   [Play MP4 in browser](https://cdn.jsdelivr.net/gh/yuwechang/comfyui-video2sprite@main/examples/right-facing-walk-loop/source-compatible.mp4)
 
 2. **GIF preview**
 

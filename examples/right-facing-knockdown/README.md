@@ -16,7 +16,7 @@
 
 1. **來源影片**
 
-   [開啟原始倒地 MP4](source.mp4)
+   [在瀏覽器播放 MP4](https://cdn.jsdelivr.net/gh/yuwechang/comfyui-video2sprite@main/examples/right-facing-knockdown/source-compatible.mp4)
 
 2. **GIF 預覽**
 

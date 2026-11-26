@@ -16,7 +16,7 @@
 
 1. **来源视频**
 
-   [来源视频 (MP4)](source.mp4)
+   [在浏览器播放 MP4](https://cdn.jsdelivr.net/gh/yuwechang/comfyui-video2sprite@main/examples/right-facing-knockdown/source-compatible.mp4)
 
 2. **GIF 预览**
 

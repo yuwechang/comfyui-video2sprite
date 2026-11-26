@@ -16,7 +16,7 @@
 
 1. **원본 영상**
 
-   [원본 영상 (MP4)](source.mp4)
+   [브라우저에서 MP4 재생](https://cdn.jsdelivr.net/gh/yuwechang/comfyui-video2sprite@main/examples/right-facing-walk-loop/source-compatible.mp4)
 
 2. **GIF 미리보기**
 
