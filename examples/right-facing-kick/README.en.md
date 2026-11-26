@@ -16,7 +16,7 @@ The kick starts from the approved GPT Image combat stance at a base size of 256.
 
 1. **Source video**
 
-   [Source video (MP4)](https://cdn.jsdelivr.net/gh/yuwechang/comfyui-video2sprite@ae6133f/examples/right-facing-kick/source.mp4)
+   [Source video (MP4)](https://cdn.jsdelivr.net/gh/yuwechang/comfyui-video2sprite@main/examples/right-facing-kick/source-compatible.mp4)
 
 2. **GIF preview**
 

@@ -20,7 +20,7 @@
 
 1. **來源影片**
 
-   [在瀏覽器播放原始 MP4](https://cdn.jsdelivr.net/gh/yuwechang/comfyui-video2sprite@ae6133f/examples/right-facing-kick/source.mp4)
+   [在瀏覽器播放 MP4](https://cdn.jsdelivr.net/gh/yuwechang/comfyui-video2sprite@main/examples/right-facing-kick/source-compatible.mp4)
 
 2. **GIF 預覽**
 
