@@ -8,7 +8,7 @@ from unittest.mock import patch
 from PIL import Image,ImageDraw
 
 sys.path.insert(0,str(Path(__file__).parents[1]/'scripts'))
-from select_segment import locate
+from select_segment import locate,select
 
 
 def pose(x):
@@ -18,6 +18,24 @@ def pose(x):
 
 
 class SegmentTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('ffmpeg') and shutil.which('ffprobe'),'FFmpeg required')
+    def test_fast_loop_preserves_source_frame_phase_returns(self):
+        # A six-frame cycle at 24 FPS loses alternate phases at 12 FPS.
+        # Analysis must not merge cycles to satisfy its minimum sample count.
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)
+            values=[4,10,18,26,18,10]*6+[4]
+            for i,x in enumerate(values):
+                pose(x).convert('RGB').save(root/f'{i:03d}.png')
+            video=root/'fast.mkv'
+            subprocess.run(['ffmpeg','-v','error','-framerate','24','-i',
+                str(root/'%03d.png'),'-c:v','ffv1',str(video)],check=True)
+            result=select(video,'loop')
+            self.assertEqual(result['status'],'selected')
+            self.assertEqual(result['analysis_stride'],1)
+            self.assertEqual(result['matching_tail']-result['start'],6)
+            self.assertEqual(result['complete_cycle_count'],6)
+
     def test_hold_keeps_multiple_substantial_phases_before_larger_final_phase(self):
         # Two substantial phases and several tiny disturbances; no action labels.
         values=[2]*4+[8,14,20,26]+[26]*3+[27]+[27]*3+[28]+[28]*5+[22,16,10,4,10,16,22,28,34]+[34]*5

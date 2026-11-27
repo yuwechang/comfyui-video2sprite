@@ -256,8 +256,8 @@ def locate(images, kind, stride=1, count=None, stable_threshold=None):
 
 
 def select(video,kind,count=None,stable_threshold=None,foreground=None,mask_output=None):
-    # Hold boundaries describe X/Y timing; preserve exact source-frame resolution.
-    images,stride=features(video,full_rate=kind in ('hold_end_pose','return_to_start'),
+    # Preserve source-frame resolution: fast loops can return between 12 FPS samples.
+    images,stride=features(video,full_rate=True,
                           subject_only=kind in ('return_to_start','loop'),horizontal_background=kind=='loop',
                           foreground=foreground,mask_output=mask_output)
     result=locate(images,kind,stride,count,stable_threshold)
